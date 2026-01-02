@@ -4,13 +4,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+def test_subroutine():
+    return "WxFunctions module is working!"
+
 def load_daily():
     """
     Loads and cleans daily weather data from Snow Weather_Daily.dat.
     Also loads necessary libraries.
     Returns a cleaned pandas DataFrame.
     """
-    print("Loading daily weather data...")
     # import numpy as np
     # import pandas as pd
     # import seaborn as sns
@@ -31,13 +33,12 @@ def load_daily():
     #####   Import and clean data   #####
 
     ###   Copy data to .csv file   ###
-    #%cp Snow\ Weather_Daily.dat Snow\ Weather_Daily.csv
     import os
     if os.name == 'nt':  # Windows
-        print("Running on Windows")
+        # print("Running on Windows")
         cmd = f'copy "data/Snow Weather_Daily.dat" "data/Snow_Daily.csv"'
     else:  # Unix/Linux
-        print("Running on Unix/Linux")
+        # print("Running on Unix/Linux")
         cmd = f'cp ./data/Snow\ Weather_Daily.dat ./data/Snow_Daily.csv'
 
     os.system(cmd)
@@ -46,10 +47,8 @@ def load_daily():
     data_file = Path('./data/Snow_Daily.csv')
     if not data_file.is_file():
         raise FileNotFoundError("The data file was not found.")
-    print(data_file)
     wx_data = pd.read_csv(data_file, header=1)
-    print(wx_data.head())
-
+    
     ###   Fix the timestamp   ###
 
     stamp = "TIMESTAMP" # Called TIMESTAMP if all-data file
