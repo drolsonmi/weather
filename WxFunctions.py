@@ -170,6 +170,6 @@ def WaterYears(wx_data, startdate='10-01', enddate='09-30'):
 
 def CalendarYears(wx_data, startdate='01-01', enddate='12-31'):
     table = pd.DataFrame()
-    for yr in range(2019,2026):
+    for yr in range(2019,2027):
         table[yr] = WxSummary(wx_data, str(yr) + '-' + startdate, str(yr) + '-' + enddate)
     return table
