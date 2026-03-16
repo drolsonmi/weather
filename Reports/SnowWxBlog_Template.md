@@ -7,10 +7,10 @@ Use the Blog Template below for each daily report:
 
 (Discussion of weather we have seen)
 
-|        | Normal | Record | Snow College | MHS   | KMTI  |
-| :----- | :----: | :----: | :----------: | :---: | :---: |
-| High   | °F     | °F     | °F           | °F    | °F    |
-| Low    | °F     | °F     | °F           | °F    | °F    |
-| Precip | "      | "      | "            | "     | "     |
+|        | Normal | Record    | Snow College | MHS   | KMTI  |
+| :----- | :----: | :-------: | :----------: | :---: | :---: |
+| High   | °F     | °F (1915) | °F           | °F    | °F    |
+| Low    | °F     | °F (1915) | °F           | °F    | °F    |
+| Precip | "      | " (1915)  | "            | "     | "     |
 
 (Discussion of weather coming)
