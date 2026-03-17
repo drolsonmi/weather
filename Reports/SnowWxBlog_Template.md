@@ -11,6 +11,6 @@ Use the Blog Template below for each daily report:
 | :----- | :----: | :-------: | :----------: | :---: | :---: |
 | High   | °F     | °F (1915) | °F           | °F    | °F    |
 | Low    | °F     | °F (1915) | °F           | °F    | °F    |
-| Precip | "      | " (1915)  | "            | "     | "     |
+| Precip | 0"     | 0" (1915) | 0"           | 0"    | 0"    |
 
 (Discussion of weather coming)
