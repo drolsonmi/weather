@@ -57,6 +57,7 @@ def main():
 if __name__ == "__main__":
     main()
 
+# Error
 Copied C:\Campbellsci\LoggerNet\Snow Weather_Daily.dat to C:\Users\GramSC\Documents\weather\data\Snow Weather_Daily.dat
 Copied C:\Campbellsci\LoggerNet\Snow Weather_FifteenMin.dat to C:\Users\GramSC\Documents\weather\data\Snow Weather_FifteenMin.dat
 Copied C:\Campbellsci\LoggerNet\Snow Weather_FiveMin.dat to C:\Users\GramSC\Documents\weather\data\Snow Weather_FiveMin.dat
