@@ -20,6 +20,7 @@ DEST_FILES = [
 ]
 
 def run(cmd):
+    cmd = [GIT_PATH] + cmd[1:] if cmd[0] == "git" else cmd
     result = subprocess.run(cmd, cwd=REPO_PATH, capture_output=True, text=True)
     if result.returncode != 0:
         print("ERROR:", result.stderr)
@@ -56,81 +57,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Error
-Copied C:\Campbellsci\LoggerNet\Snow Weather_Daily.dat to C:\Users\GramSC\Documents\weather\data\Snow Weather_Daily.dat
-Copied C:\Campbellsci\LoggerNet\Snow Weather_FifteenMin.dat to C:\Users\GramSC\Documents\weather\data\Snow Weather_FifteenMin.dat
-Copied C:\Campbellsci\LoggerNet\Snow Weather_FiveMin.dat to C:\Users\GramSC\Documents\weather\data\Snow Weather_FiveMin.dat
-Traceback (most recent call last):
-  File "C:\Users\GramSC\Documents\weather\sync_to_github.py", line 58, in <module>
-    main()
-    ~~~~^^
-  File "C:\Users\GramSC\Documents\weather\sync_to_github.py", line 41, in main
-    run(["git", "add", "."])
-    ~~~^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\GramSC\Documents\weather\sync_to_github.py", line 23, in run
-    result = subprocess.run(cmd, cwd=REPO_PATH, capture_output=True, text=True)
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\Lib\subprocess.py", line 554, in run
-    with Popen(*popenargs, **kwargs) as process:
-         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\Lib\subprocess.py", line 1039, in __init__
-    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                        pass_fds, cwd, env,
-                        ^^^^^^^^^^^^^^^^^^^
-    ...<5 lines>...
-                        ^^^^^^^^^^^^^^^^^^^^^^
-                        start_new_session, process_group)
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\Lib\subprocess.py", line 1554, in _execute_child
-    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
-                       ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
-                             # no special security
-                             ^^^^^^^^^^^^^^^^^^^^^
-    ...<4 lines>...
-                             cwd,
-                             ^^^^
-                             startupinfo)
-                             ^^^^^^^^^^^^
-FileNotFoundError: [WinError 2] The system cannot find the file specified
-PS C:\Users\GramSC\Documents\weather> python .\sync_to_github.py
-  File "C:\Users\GramSC\Documents\weather\sync_to_github.py", line 7
-    REPO_PATH = r"C:\Users\GramSC\Documents\weather\data\"
-                ^
-SyntaxError: unterminated string literal (detected at line 7); perhaps you escaped the end quote?
-PS C:\Users\GramSC\Documents\weather> python .\sync_to_github.py
-Copied C:\Campbellsci\LoggerNet\Snow Weather_Daily.dat to C:\Users\GramSC\Documents\weather\data\Snow Weather_Daily.dat
-Copied C:\Campbellsci\LoggerNet\Snow Weather_FifteenMin.dat to C:\Users\GramSC\Documents\weather\data\Snow Weather_FifteenMin.dat
-Copied C:\Campbellsci\LoggerNet\Snow Weather_FiveMin.dat to C:\Users\GramSC\Documents\weather\data\Snow Weather_FiveMin.dat
-Traceback (most recent call last):
-  File "C:\Users\GramSC\Documents\weather\sync_to_github.py", line 58, in <module>
-    main()
-    ~~~~^^
-  File "C:\Users\GramSC\Documents\weather\sync_to_github.py", line 41, in main
-    run(["git", "add", "."])
-    ~~~^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\GramSC\Documents\weather\sync_to_github.py", line 23, in run
-    result = subprocess.run(cmd, cwd=REPO_PATH, capture_output=True, text=True)
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\Lib\subprocess.py", line 554, in run
-    with Popen(*popenargs, **kwargs) as process:
-         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\Lib\subprocess.py", line 1039, in __init__
-    self._execute_child(args, executable, preexec_fn, close_fds,
-    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                        pass_fds, cwd, env,
-                        ^^^^^^^^^^^^^^^^^^^
-    ...<5 lines>...
-                        gid, gids, uid, umask,
-                        ^^^^^^^^^^^^^^^^^^^^^^
-                        start_new_session, process_group)
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3568.0_x64__qbz5n2kfra8p0\Lib\subprocess.py", line 1554, in _execute_child
-    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
-                       ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
-                             # no special security
-                             ^^^^^^^^^^^^^^^^^^^^^
-    ...<4 lines>...
-                             cwd,
-                             ^^^^
-                             startupinfo)
-                             ^^^^^^^^^^^^
-FileNotFoundError: [WinError 2] The system cannot find the file specified
