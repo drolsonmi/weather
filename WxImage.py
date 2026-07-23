@@ -50,6 +50,7 @@ wx_5min['HeatedPrecip_Tot'] = wx_5min['HeatedPrecip_Tot'].apply(float)
 
 
 #######  Create the image  #######
+sns.set_style("darkgrid")
 
 fig = plt.figure(figsize=(12, 12))
 fig.text(0.5, 0.98,
@@ -79,6 +80,9 @@ ax_temp.set_title('Temperature and Relative Humidity', fontsize=12)
 ax_rh = ax_temp.twinx()
 sns.lineplot(data=wx_5min.tail(288), x='TIMESTAMP', y='RH_Avg', ax=ax_rh, color='green')
 ax_rh.set_ylabel('Relative Humidity (%)', color='green')
+ax_temp.grid(False, which='major', axis='x')
+ax_rh.grid(False, which='major', axis='x')
+ax_rh.grid(False, which='major', axis='y')
 
 
 ###   Pressure   ###
@@ -110,6 +114,11 @@ sns.lineplot(
 )
 
 ax_heated.set_ylabel('Heated Precipitation (in)', color='orange')
+# Set Heated and Precipitation y-axis limits to match Precipitation y-axis limits
+ymin = min(ax_precip.get_ylim()[0], ax_heated.get_ylim()[0])
+ymax = max(ax_precip.get_ylim()[1], ax_heated.get_ylim()[1])
+ax_precip.set_ylim(ymin, ymax)
+ax_heated.set_ylim(ymin, ymax)
 
 # Match colors
 ax_precip.tick_params(axis='y', colors='purple')
@@ -136,4 +145,4 @@ sns.lineplot(data=wx_5min.tail(288), x='TIMESTAMP', y='HeatedRunTot', ax=ax_prec
 
 ###   Output   ###
 fig.savefig('./images/weather_image.png', dpi=300)
-plt.show()
+# plt.show()
