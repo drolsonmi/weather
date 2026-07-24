@@ -6,7 +6,8 @@ xcopy /I /Y "C:\Campbellsci\LoggerNet\Snow Weather_FiveMin.dat" "C:\Users\GramSC
 xcopy /I /Y "C:\Campbellsci\LoggerNet\Snow Weather_FifteenMin.dat" "C:\Users\GramSC\Documents\weather\data"
 
 :: Stage all changes
-git add .
+git add "C:\Users\GramSC\Documents\weather\data\Snow Weather_FiveMin.dat"
+git add "C:\Users\GramSC\Documents\weather\data\Snow Weather_FifteenMin.dat"
 
 :: Commit with a timestamp
 git commit -m "Auto-update: %DATE% %TIME%"

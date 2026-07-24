@@ -14,9 +14,12 @@ the_months = {1:'January',2:'February',3:'March',4:'April',
 wx_daily = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_Daily.dat', header=1)
 wx_5min = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FiveMin.dat', header=1)
 
+###   Change TIMESTAMP to datetime format   ###
+wx_5min['TIMESTAMP'] = pd.to_datetime(wx_5min['TIMESTAMP'], errors='coerce')
+wx_5min = wx_5min.dropna(subset=['TIMESTAMP'])
 
 ###   Clean the data   ###
-wx_5min = wx_5min.drop([0,1], axis=0)
+# wx_5min = wx_5min.drop([0,1], axis=0)
 
 ###   Make Time and Date columns   ###
 wx_5min.insert(0, 'Time', pd.to_datetime(wx_5min['TIMESTAMP']).dt.time)
