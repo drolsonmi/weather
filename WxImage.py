@@ -10,6 +10,11 @@ the_months = {1:'January',2:'February',3:'March',4:'April',
               5:'May',6:'June',7:'July',8:'August',9:'September',
               10:'October',11:'November',12:'December'}
 
+import platform
+
+hour_flag = '%#I' if platform.system() == 'Windows' else '%-I'
+time_fmt = f'{hour_flag} %p'
+
 ###   Load the data   ###
 wx_daily = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_Daily.dat', header=1)
 wx_5min = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FiveMin.dat', header=1)
@@ -50,18 +55,24 @@ wx_5min['Rain_Tot'] = wx_5min['Rain_Tot'].apply(float)
 wx_5min['HeatedPrecip_Tot'] = wx_5min['HeatedPrecip_Tot'].apply(float)
 
 
+#######  Data Subset  #######
+def obtain_subset(X, endtime="now", starttime=0):
+    return X.tail(288)
 
+wx = obtain_subset(wx_5min)
 
 #######  Create the image  #######
 sns.set_style("darkgrid")
 
 fig = plt.figure(figsize=(12, 12))
 fig.text(0.5, 0.98,
-         f"Snow College Weather Station - {wx_5min['TIMESTAMP'].iloc[-1].strftime('%B %d, %Y - %I:%M %p')}                    ",
+         f"Snow College Weather Station - {wx['TIMESTAMP'].iloc[-1].strftime('%B %d, %Y - %I:%M %p')}                    ",
          ha='center',
          fontsize=13,
          fontweight='bold')
 
+xmin = wx['TIMESTAMP'].min()
+xmax = wx['TIMESTAMP'].max()
 
 ###   Snow Weather Logo   ###
 img = mpimg.imread('./images/SnowWeatherLogo_Blue.png')
@@ -73,65 +84,77 @@ ax_logo.axis('off')
 
 # Temperature
 ax_temp = fig.add_axes((0.2, 0.85, 0.5, 0.1))
-sns.lineplot(data=wx_5min.tail(288), x='TIMESTAMP', y='AirTF_Avg', ax=ax_temp, color='red')
-ax_temp.xaxis.set_major_formatter(mdates.DateFormatter('%-I %p'))
+sns.lineplot(data=wx, x='TIMESTAMP', y='AirTF_Avg', ax=ax_temp, color='red')
+ax_temp.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_temp.set_xlabel('')
+ax_temp.set_xlim(xmin, xmax)
 ax_temp.set_ylabel('Temperature (F)', color='red')
 ax_temp.set_title('Temperature and Relative Humidity', fontsize=12)
 
 # Relative Humidity
 ax_rh = ax_temp.twinx()
-sns.lineplot(data=wx_5min.tail(288), x='TIMESTAMP', y='RH_Avg', ax=ax_rh, color='green')
+sns.lineplot(data=wx, x='TIMESTAMP', y='RH_Avg', ax=ax_rh, color='green')
 ax_rh.set_ylabel('Relative Humidity (%)', color='green')
 ax_temp.grid(False, which='major', axis='x')
 ax_rh.grid(False, which='major', axis='x')
 ax_rh.grid(False, which='major', axis='y')
-
+ax_rh.set_xlim(xmin, xmax)
 
 ###   Pressure   ###
 ax_press = fig.add_axes((0.2, 0.7, 0.5, 0.1))
-sns.lineplot(data=wx_5min.tail(288), x='TIMESTAMP', y='BP_inHg', ax=ax_press, color='blue')
-ax_press.xaxis.set_major_formatter(mdates.DateFormatter('%-I %p'))
+sns.lineplot(data=wx, x='TIMESTAMP', y='BP_inHg', ax=ax_press, color='blue')
+ax_press.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_press.set_xlabel('')
 ax_press.set_ylabel('Pressure (inHg)', color='blue')
 ax_press.set_title('Pressure', fontsize=12)
+ax_press.set_xlim(xmin, xmax)
+
 
 ###   Precipitation   ###
 # Liquid precipitation
 ax_precip = fig.add_axes((0.2, 0.55, 0.5, 0.1))
-sns.lineplot(data=wx_5min.tail(288), x='TIMESTAMP', y='RainRunTot', ax=ax_precip, color='purple')
-ax_precip.xaxis.set_major_formatter(mdates.DateFormatter('%-I %p'))
+sns.lineplot(
+    data=wx,
+    x='TIMESTAMP',
+    y='RainRunTot',
+    ax=ax_precip,
+    color='purple'
+)
+ax_precip.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_precip.set_xlabel('')
 ax_precip.set_ylabel('Precipitation (in)', color='purple')
 ax_precip.set_title('Precipitation', fontsize=12)
+ax_precip.set_xlim(xmin, xmax)
 
 # Heated precipitation
 ax_heated = ax_precip.twinx()
-
 sns.lineplot(
-    data=wx_5min.tail(288),
+    data=wx,
     x='TIMESTAMP',
     y='HeatedRunTot',
     ax=ax_heated,
     color='orange'
 )
-
 ax_heated.set_ylabel('Heated Precipitation (in)', color='orange')
+
 # Set Heated and Precipitation y-axis limits to match Precipitation y-axis limits
-ymin = min(ax_precip.get_ylim()[0], ax_heated.get_ylim()[0])
-ymax = max(ax_precip.get_ylim()[1], ax_heated.get_ylim()[1])
-ax_precip.set_ylim(ymin, ymax)
-ax_heated.set_ylim(ymin, ymax)
+# ymin = min(ax_precip.get_ylim()[0], ax_heated.get_ylim()[0])
+# ymax = max(ax_precip.get_ylim()[1], ax_heated.get_ylim()[1])
+ymax = max(wx['RainRunTot'].max(), wx['HeatedRunTot'].max())
+ax_precip.set_xlim(xmin, xmax)
+ax_precip.set_ylim(0, max(0.021, ymax))
+ax_heated.set_xlim(xmin, xmax)
+ax_heated.set_ylim(0, max(0.021, ymax))
 
 # Match colors
-ax_precip.tick_params(axis='y', colors='purple')
-ax_heated.tick_params(axis='y', colors='orange')
+# ax_precip.tick_params(axis='y', colors='purple')
+# ax_heated.tick_params(axis='y', colors='orange')
 
 
 
 
 
-sns.lineplot(data=wx_5min.tail(288), x='TIMESTAMP', y='HeatedRunTot', ax=ax_precip, color='orange')
+#sns.lineplot(data=wx, x='TIMESTAMP', y='HeatedRunTot', ax=ax_precip, color='orange')
 
 
 ###   Solar Radiation   ###
