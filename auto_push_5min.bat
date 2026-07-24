@@ -5,8 +5,12 @@ cd /d "C:\Users\GramSC\Documents\weather"
 xcopy /I /Y "C:\Campbellsci\LoggerNet\Snow Weather_FiveMin.dat" "C:\Users\GramSC\Documents\weather\data"
 xcopy /I /Y "C:\Campbellsci\LoggerNet\Snow Weather_FifteenMin.dat" "C:\Users\GramSC\Documents\weather\data"
 
+:: Stage changes
+
 :: New Image
-C:\Users\GramSC\.virtualenvs\Wx\Scripts\python.exe C:\Users\GramSC\Documents\weather\images\WxImage.py
+C:\Users\GramSC\.virtualenvs\Wx\Scripts\python.exe C:\Users\GramSC\Documents\weather\WxImage.py
+
+:: Stage new image
 
 :: Stage all changes
 git add "C:\Users\GramSC\Documents\weather\data\Snow Weather_FiveMin.dat"
