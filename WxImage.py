@@ -6,18 +6,31 @@ import matplotlib.dates as mdates
 import matplotlib.image as mpimg
 import seaborn as sns
 
+
 the_months = {1:'January',2:'February',3:'March',4:'April',
               5:'May',6:'June',7:'July',8:'August',9:'September',
               10:'October',11:'November',12:'December'}
+
 
 import platform
 
 hour_flag = '%#I' if platform.system() == 'Windows' else '%-I'
 time_fmt = f'{hour_flag} %p'
 
+
+
+###   Copy Five-Minute Data   ###
+# import os
+# os.system('cd C:\Users\GramSC\Documents\weather')
+# cmd = f'copy "C:\Campbellsci\LoggerNet\Snow Weather_FiveMin.dat" "./data/Snow Weather_FiveMin.dat"'
+# os.system(cmd)
+
 ###   Load the data   ###
-wx_daily = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_Daily.dat', header=1)
-wx_5min = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FiveMin.dat', header=1)
+# wx_daily = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_Daily.dat', header=1)
+# wx_5min = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FiveMin.dat', header=1)
+# wx_5min = pd.read_csv('C:\Campbellsci\LoggerNet\Snow Weather_FiveMin.dat')
+wx_5min = pd.read_csv(r'C:\Users\GramSC\Documents\weather\data\Snow Weather_FiveMin.dat', header=1)
+# wx_5min = pd.read_csv('./data/Snow Weather_FiveMin.dat')
 
 ###   Change TIMESTAMP to datetime format   ###
 wx_5min['TIMESTAMP'] = pd.to_datetime(wx_5min['TIMESTAMP'], errors='coerce')
@@ -95,7 +108,7 @@ ax_temp.set_title('Temperature and Relative Humidity', fontsize=12)
 ax_rh = ax_temp.twinx()
 sns.lineplot(data=wx, x='TIMESTAMP', y='RH_Avg', ax=ax_rh, color='green')
 ax_rh.set_ylabel('Relative Humidity (%)', color='green')
-ax_temp.grid(False, which='major', axis='x')
+# ax_temp.grid(False, which='major', axis='x')
 ax_rh.grid(False, which='major', axis='x')
 ax_rh.grid(False, which='major', axis='y')
 ax_rh.set_xlim(xmin, xmax)
