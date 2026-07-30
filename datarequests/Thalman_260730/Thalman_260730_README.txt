@@ -1,8 +1,10 @@
 Request for data filled by Michael Olson, July 30, 2026
 
-Dataset includes:
+Data includes:
   - 5-minute data
+    - https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/datarequests/Thalman_260730/Thalman_260730_5min.dat
   - 15-minute data
+    - https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/datarequests/Thalman_260730/Thalman_260730_15min.dat
 
 Date Range:
   - Beginning timestamp: July 16, 2026, 00:00
