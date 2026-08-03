@@ -4,6 +4,9 @@ cd /d "C:\Users\GramSC\Documents\weather"
 :: Update local repo
 git pull
 
+:: Clear garbage
+git gc --force
+
 :: Copy data files
 xcopy /I /Y "C:\Campbellsci\LoggerNet\Snow Weather_FiveMin.dat" "C:\Users\GramSC\Documents\weather\data"
 xcopy /I /Y "C:\Campbellsci\LoggerNet\Snow Weather_FifteenMin.dat" "C:\Users\GramSC\Documents\weather\data"
