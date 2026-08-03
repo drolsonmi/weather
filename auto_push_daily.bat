@@ -1,6 +1,12 @@
 @echo off
 cd /d "C:\Users\GramSC\Documents\weather"
 
+:: Update local repo
+git pull
+
+:: Clear garbage
+git gc --force
+
 :: Copy data files
 xcopy /I /Y "C:\Campbellsci\LoggerNet\Snow Weather_Daily.dat" "C:\Users\GramSC\Documents\weather\data"
 
