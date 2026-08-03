@@ -15,6 +15,7 @@ the_months = {1:'January',2:'February',3:'March',4:'April',
 import platform
 
 hour_flag = '%#I' if platform.system() == 'Windows' else '%-I'
+date_flag = '%#d' if platform.system() == 'Windows' else '%-d'
 time_fmt = f'{hour_flag} %p'
 
 
@@ -77,9 +78,11 @@ wx = obtain_subset(wx_5min)
 #######  Create the image  #######
 sns.set_style("darkgrid")
 
+title_timestamp = f"wx['TIMESTAMP'].iloc[-1].strftime('%B {date_flag}, %Y - {time_flag}:%M %p')"
+
 fig = plt.figure(figsize=(12, 12))
 fig.text(0.5, 0.98,
-         f"Snow College Weather Station - {wx['TIMESTAMP'].iloc[-1].strftime('%B %d, %Y - %I:%M %p')}                    ",
+         f"Snow College Weather Station - {title_timestamp}                    ",
          ha='center',
          fontsize=13,
          fontweight='bold')
