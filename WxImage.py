@@ -78,7 +78,7 @@ wx = obtain_subset(wx_5min)
 #######  Create the image  #######
 sns.set_style("darkgrid")
 
-title_timestamp = f"wx['TIMESTAMP'].iloc[-1].strftime('%B {date_flag}, %Y - {time_flag}:%M %p')"
+title_timestamp = wx['TIMESTAMP'].iloc[-1].strftime(f'%B {date_flag}, %Y - {hour_flag}:%M %p')
 
 fig = plt.figure(figsize=(12, 12))
 fig.text(0.5, 0.98,
