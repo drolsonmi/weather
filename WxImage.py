@@ -182,6 +182,50 @@ ax_wind.set_ylabel('Wind Speed (mph)', color='blue')
 ax_wind.set_title('Wind Speed and Direction', fontsize=12)
 
 
+# Wind Direction
+wx15 = pd.read_csv(
+    'https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FifteenMin.dat',
+    skiprows=[0, 2, 3],  # keep row 1 (variable names) as header
+    header=0
+)
+wx15['TIMESTAMP'] = pd.to_datetime(wx15['TIMESTAMP'])
+
+# Trim to the same time window as your existing plot
+wx15_plot = wx15[(wx15['TIMESTAMP'] >= xmin) & (wx15['TIMESTAMP'] <= xmax)].copy()
+
+import numpy as np
+import matplotlib.transforms as transforms
+
+# u, v components of the vector the wind is blowing TOWARD
+wind_dir_rad = np.radians(wx15_plot['WindDir'])
+u = -np.sin(wind_dir_rad)
+v = -np.cos(wind_dir_rad)
+
+# Blend x in data coordinates with y in axes-fraction coordinates,
+# so the arrows sit at a fixed height above the panel regardless of wind-speed scale
+trans = transforms.blended_transform_factory(ax_wind.transData, ax_wind.transAxes)
+
+ax_wind.quiver(
+    wx15_plot['TIMESTAMP'], [1.08] * len(wx15_plot),  # y=1.08 -> just above the axes
+    u, v,
+    transform=trans,
+    scale=25,          # smaller = longer arrows; tune to taste
+    width=0.003,
+    headwidth=3,
+    headlength=4,
+    color='black',
+    clip_on=False       # allow drawing outside the axes box
+)
+
+ax_dir = fig.add_axes((0.2, 0.51, 0.5, 0.03), sharex=ax_wind)
+ax_dir.axis('off')
+ax_dir.set_xlim(xmin, xmax)
+
+trans2 = transforms.blended_transform_factory(ax_dir.transData, ax_dir.transAxes)
+ax_dir.quiver(wx15_plot['TIMESTAMP'], [0.5]*len(wx15_plot), u, v,
+              transform=trans2, scale=25, width=0.003,
+              headwidth=3, headlength=4, color='black')
+
 ###   Solar Radiation   ###
 ax_solar = fig.add_axes((0.2, 0.25, 0.5, 0.1))
 sns.lineplot(data=wx, x='TIMESTAMP', y='SlrkW', ax=ax_solar, color='orange')
