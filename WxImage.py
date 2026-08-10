@@ -68,6 +68,13 @@ wx_5min.loc[wx_5min['AirTF_Avg'] < -30, 'AirTF_Avg'] = np.nan
 wx_5min['Rain_Tot'] = wx_5min['Rain_Tot'].apply(float)
 wx_5min['HeatedPrecip_Tot'] = wx_5min['HeatedPrecip_Tot'].apply(float)
 
+###   Load 15-minute data   ###
+wx_15min = pd.read_csv(
+    'https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FifteenMin.dat',
+    skiprows=[0, 2, 3],  # keep row 1 (variable names) as header
+    header=0
+)
+wx_15min['TIMESTAMP'] = pd.to_datetime(wx_15min['TIMESTAMP'])
 
 #######  Data Subset  #######
 def obtain_subset(X, endtime="now", starttime=0):
@@ -172,62 +179,44 @@ ax_heated.set_ylim(0, max(0.021, ymax))
 ###   Wind   ###
 
 # Wind Speed
-ax_wind = fig.add_axes((0.2, 0.4, 0.5, 0.1))
+ax_wind = fig.add_axes((0.2, 0.38, 0.5, 0.1))
 sns.lineplot(data=wx, x='TIMESTAMP', y='AveWindSp', ax=ax_wind, color='blue')
 sns.scatterplot(data=wx, x='TIMESTAMP', y='WindGust', ax=ax_wind, color='red', s=3)
 ax_wind.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_wind.set_xlabel('')
 ax_wind.set_xlim(xmin, xmax)
 ax_wind.set_ylabel('Wind Speed (mph)', color='blue')
-ax_wind.set_title('Wind Speed and Direction', fontsize=12)
+# ax_wind.set_title('Wind Speed and Direction', fontsize=12)
 
 
 # Wind Direction
-wx15 = pd.read_csv(
-    'https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FifteenMin.dat',
-    skiprows=[0, 2, 3],  # keep row 1 (variable names) as header
-    header=0
-)
-wx15['TIMESTAMP'] = pd.to_datetime(wx15['TIMESTAMP'])
+
 
 # Trim to the same time window as your existing plot
-wx15_plot = wx15[(wx15['TIMESTAMP'] >= xmin) & (wx15['TIMESTAMP'] <= xmax)].copy()
+wx15_plot = wx_15min[(wx_15min['TIMESTAMP'] >= xmin) & (wx_15min['TIMESTAMP'] <= xmax)].copy()
 
 import numpy as np
 import matplotlib.transforms as transforms
 
 # u, v components of the vector the wind is blowing TOWARD
 wind_dir_rad = np.radians(wx15_plot['WindDir'])
-u = -np.sin(wind_dir_rad)
-v = -np.cos(wind_dir_rad)
+speed_ratio = (wx15_plot['AveWindSp'] + wx15_plot['AveWindSp'].max()) / (2*wx15_plot['AveWindSp'].max())
+# speed_ratio = wx15_plot['AveWindSp'] / wx15_plot['AveWindSp'].max()
+u = -np.sin(wind_dir_rad) * speed_ratio
+v = -np.cos(wind_dir_rad) * speed_ratio
 
-# Blend x in data coordinates with y in axes-fraction coordinates,
-# so the arrows sit at a fixed height above the panel regardless of wind-speed scale
-trans = transforms.blended_transform_factory(ax_wind.transData, ax_wind.transAxes)
-
-ax_wind.quiver(
-    wx15_plot['TIMESTAMP'], [1.08] * len(wx15_plot),  # y=1.08 -> just above the axes
-    u, v,
-    transform=trans,
-    scale=25,          # smaller = longer arrows; tune to taste
-    width=0.003,
-    headwidth=3,
-    headlength=4,
-    color='black',
-    clip_on=False       # allow drawing outside the axes box
-)
-
-ax_dir = fig.add_axes((0.2, 0.51, 0.5, 0.03), sharex=ax_wind)
+ax_dir = fig.add_axes((0.2, 0.45, 0.5, 0.05), sharex=ax_wind)
 ax_dir.axis('off')
 ax_dir.set_xlim(xmin, xmax)
+ax_dir.set_title('Wind Speed and Direction', fontsize=12)
 
 trans2 = transforms.blended_transform_factory(ax_dir.transData, ax_dir.transAxes)
 ax_dir.quiver(wx15_plot['TIMESTAMP'], [0.5]*len(wx15_plot), u, v,
               transform=trans2, scale=25, width=0.003,
-              headwidth=3, headlength=4, color='black')
+              headwidth=3, headlength=4, color='black', alpha=0.5)
 
 ###   Solar Radiation   ###
-ax_solar = fig.add_axes((0.2, 0.25, 0.5, 0.1))
+ax_solar = fig.add_axes((0.2, 0.23, 0.5, 0.1))
 sns.lineplot(data=wx, x='TIMESTAMP', y='SlrkW', ax=ax_solar, color='orange')
 ax_solar.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_solar.set_xlabel('')
