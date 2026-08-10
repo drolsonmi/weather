@@ -118,11 +118,11 @@ ax_rh.set_xlim(xmin, xmax)
 
 ###   Pressure   ###
 ax_press = fig.add_axes((0.2, 0.7, 0.5, 0.1))
-sns.lineplot(data=wx, x='TIMESTAMP', y='BP_inHg', ax=ax_press, color='blue')
+sns.lineplot(data=wx, x='TIMESTAMP', y='BP_inHg', ax=ax_press, color='purple')
 ax_press.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_press.set_xlabel('')
-ax_press.set_ylabel('Pressure (inHg)', color='blue')
-ax_press.set_title('Pressure', fontsize=12)
+ax_press.set_ylabel('Pressure (inHg)', color='purple')
+ax_press.set_title('Atmospheric Pressure (MSLP)', fontsize=12)
 ax_press.set_xlim(xmin, xmax)
 
 
@@ -134,11 +134,11 @@ sns.lineplot(
     x='TIMESTAMP',
     y='RainRunTot',
     ax=ax_precip,
-    color='purple'
+    color='blue'
 )
 ax_precip.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_precip.set_xlabel('')
-ax_precip.set_ylabel('Precipitation (in)', color='purple')
+ax_precip.set_ylabel('Precipitation (in)', color='blue')
 ax_precip.set_title('Precipitation', fontsize=12)
 ax_precip.set_xlim(xmin, xmax)
 
@@ -166,15 +166,30 @@ ax_heated.set_ylim(0, max(0.021, ymax))
 # ax_precip.tick_params(axis='y', colors='purple')
 # ax_heated.tick_params(axis='y', colors='orange')
 
+# sns.lineplot(data=wx, x='TIMESTAMP', y='HeatedRunTot', ax=ax_precip, color='orange')
 
 
+###   Wind   ###
 
-
-#sns.lineplot(data=wx, x='TIMESTAMP', y='HeatedRunTot', ax=ax_precip, color='orange')
+# Wind Speed
+ax_wind = fig.add_axes((0.2, 0.4, 0.5, 0.1))
+sns.lineplot(data=wx, x='TIMESTAMP', y='AveWindSp', ax=ax_wind, color='blue')
+sns.scatterplot(data=wx, x='TIMESTAMP', y='WindGust', ax=ax_wind, color='red', s=3)
+ax_wind.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
+ax_wind.set_xlabel('')
+ax_wind.set_xlim(xmin, xmax)
+ax_wind.set_ylabel('Wind Speed (mph)', color='blue')
+ax_wind.set_title('Wind Speed and Direction', fontsize=12)
 
 
 ###   Solar Radiation   ###
-
+ax_solar = fig.add_axes((0.2, 0.25, 0.5, 0.1))
+sns.lineplot(data=wx, x='TIMESTAMP', y='SlrkW', ax=ax_solar, color='orange')
+ax_solar.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
+ax_solar.set_xlabel('')
+ax_solar.set_xlim(xmin, xmax)
+ax_solar.set_ylabel(r'$\text{Power (}kW/m^2\text{)}$', color='orange')
+ax_solar.set_title('Solar Irradiance', fontsize=12)
 
 ###   Current Values   ###
 
