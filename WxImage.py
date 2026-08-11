@@ -165,9 +165,9 @@ ax_heated.set_ylabel('Heated Precipitation (in)', color='orange')
 # ymax = max(ax_precip.get_ylim()[1], ax_heated.get_ylim()[1])
 ymax = max(wx['RainRunTot'].max(), wx['HeatedRunTot'].max())
 ax_precip.set_xlim(xmin, xmax)
-ax_precip.set_ylim(0, max(0.021, ymax))
+ax_precip.set_ylim(0, max(0.021, ymax+0.002))
 ax_heated.set_xlim(xmin, xmax)
-ax_heated.set_ylim(0, max(0.021, ymax))
+ax_heated.set_ylim(0, max(0.021, ymax+0.002))
 
 # Match colors
 # ax_precip.tick_params(axis='y', colors='purple')
