@@ -205,7 +205,7 @@ speed_ratio = (wx15_plot['AveWindSp'] + wx15_plot['AveWindSp'].max()) / (2*wx15_
 u = -np.sin(wind_dir_rad) * speed_ratio
 v = -np.cos(wind_dir_rad) * speed_ratio
 
-ax_dir = fig.add_axes((0.2, 0.45, 0.5, 0.05), sharex=ax_wind)
+ax_dir = fig.add_axes((0.2, 0.455, 0.5, 0.05), sharex=ax_wind)
 ax_dir.axis('off')
 ax_dir.set_xlim(xmin, xmax)
 ax_dir.set_title('Wind Speed and Direction', fontsize=12)
