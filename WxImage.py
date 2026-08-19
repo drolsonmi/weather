@@ -225,7 +225,44 @@ ax_solar.set_ylabel(r'$\text{Power (}kW/m^2\text{)}$', color='orange')
 ax_solar.set_title('Solar Irradiance', fontsize=12)
 
 ###   Current Values   ###
+fig.text(0.02, 0.88,
+         f"Current Conditions",
+         ha='left',
+         fontsize=13,
+         fontweight='bold')
 
+# Current T
+fig.text(0.04, 0.86,
+         f"{wx.tail(1)['AirTF_Avg'].values[0]:0.1f}*F",
+         fontsize=16,
+         fontweight='bold',
+         color='red')
+
+# Max T
+high = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['AirTF_Avg'].max()
+fig.text(0.03, 0.84,
+         f"Today's High: {high:0.1f}*F")
+
+# Min T
+low = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['AirTF_Avg'].min()
+fig.text(0.03, 0.82,
+         f"Today's Low: {low:0.1f}*F")
+
+# RH
+fig.text(0.04, 0.79,
+         f"{wx.tail(1)['RH_Avg'].values[0]:0.1f}%",
+         fontsize=16,
+         fontweight='bold',
+         color='green')
+# Max RH
+high = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['RH_Avg'].max()
+fig.text(0.03, 0.77,
+         f"Today's High: {high:0.1f}%")
+
+# Min RH
+low = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['RH_Avg'].min()
+fig.text(0.03, 0.75,
+         f"Today's Low: {low:0.1f}%")
 
 ###   Current Wind Conditions   ###
 
