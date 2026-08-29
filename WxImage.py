@@ -28,9 +28,9 @@ time_fmt = f'{hour_flag} %p'
 
 ###   Load the data   ###
 # wx_daily = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_Daily.dat', header=1)
-# wx_5min = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FiveMin.dat', header=1)
+wx_5min = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FiveMin.dat', header=1)
 # wx_5min = pd.read_csv('C:\Campbellsci\LoggerNet\Snow Weather_FiveMin.dat')
-wx_5min = pd.read_csv(r'C:\Users\GramSC\Documents\weather\data\Snow Weather_FiveMin.dat', header=1)
+# wx_5min = pd.read_csv(r'C:\Users\GramSC\Documents\weather\data\Snow Weather_FiveMin.dat', header=1)
 # wx_5min = pd.read_csv('./data/Snow Weather_FiveMin.dat')
 
 ###   Change TIMESTAMP to datetime format   ###
@@ -225,46 +225,309 @@ ax_solar.set_ylabel(r'$\text{Power (}kW/m^2\text{)}$', color='orange')
 ax_solar.set_title('Solar Irradiance', fontsize=12)
 
 ###   Current Values   ###
-fig.text(0.02, 0.88,
-         f"Current Conditions",
-         ha='left',
-         fontsize=13,
-         fontweight='bold')
 
-# Current T
-fig.text(0.04, 0.86,
-         f"{wx.tail(1)['AirTF_Avg'].values[0]:0.1f}*F",
-         fontsize=16,
-         fontweight='bold',
-         color='red')
 
-# Max T
-high = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['AirTF_Avg'].max()
-fig.text(0.03, 0.84,
-         f"Today's High: {high:0.1f}*F")
 
-# Min T
-low = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['AirTF_Avg'].min()
-fig.text(0.03, 0.82,
-         f"Today's Low: {low:0.1f}*F")
 
-# RH
-fig.text(0.04, 0.79,
-         f"{wx.tail(1)['RH_Avg'].values[0]:0.1f}%",
-         fontsize=16,
-         fontweight='bold',
-         color='green')
-# Max RH
-high = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['RH_Avg'].max()
-fig.text(0.03, 0.77,
-         f"Today's High: {high:0.1f}%")
+###   Current Conditions Panel   ###
+from matplotlib.patches import FancyBboxPatch
 
-# Min RH
-low = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['RH_Avg'].min()
-fig.text(0.03, 0.75,
-         f"Today's Low: {low:0.1f}%")
+# Panel sits in the left margin, below the logo — taller now for 3 rows
+ax_panel = fig.add_axes((0.01, 0.44, 0.17, 0.445))
+ax_panel.axis('off')
+ax_panel.set_xlim(0, 1)
+ax_panel.set_ylim(0, 1)
+
+# Rounded background card
+ax_panel.add_patch(FancyBboxPatch(
+    (0.02, 0.02), 0.96, 0.96,
+    boxstyle="round,pad=0.02,rounding_size=0.04",
+    linewidth=1, edgecolor='#cccccc', facecolor='#f7f7f7',
+    transform=ax_panel.transAxes, zorder=0
+))
+
+# Header
+ax_panel.text(0.5, 0.955, "CURRENT CONDITIONS", ha='center', va='center',
+              fontsize=11, fontweight='bold', color='#333333',
+              transform=ax_panel.transAxes)
+ax_panel.text(0.5, 0.915, title_timestamp, ha='center', va='center',
+              fontsize=7.5, color='#888888', transform=ax_panel.transAxes)
+
+def stat_card(ax, x, y, w, h, label, value, color,
+              high=None, low=None, unit='', unit_below=None):
+    """Draw one label / big-value / high-low stat block in axes-fraction coords."""
+    ax.text(x + w/2, y + h - 0.03, label, ha='center', va='top',
+            fontsize=8, fontweight='bold', color='#777777', transform=ax.transAxes)
+    ax.text(x + w/2, y + h*0.58, value, ha='center', va='center',
+            fontsize=19, fontweight='bold', color=color, transform=ax.transAxes)
+    if unit_below:
+        ax.text(x + w/2, y + h*0.58 - 0.075, unit_below, ha='center', va='top',
+                fontsize=7, color=color, transform=ax.transAxes)
+    if high is not None and low is not None:
+        ax.text(x + w*0.28, y + 0.02, f"High\n{high:0.1f}{unit}",
+                ha='center', va='bottom', fontsize=7, color='#555555',
+                transform=ax.transAxes, linespacing=1.4)
+        ax.text(x + w*0.72, y + 0.02, f"Low\n{low:0.1f}{unit}",
+                ha='center', va='bottom', fontsize=7, color='#555555',
+                transform=ax.transAxes, linespacing=1.4)
+
+def dual_mini_card(ax, x, y, w, h, label, sub1, sub2):
+    """
+    A card holding two side-by-side mini-stats (used for precip / heated precip).
+    sub1, sub2 are dicts: {'label':..., 'value':..., 'color':...}
+    """
+    ax.text(x + w/2, y + h - 0.03, label, ha='center', va='top',
+            fontsize=8, fontweight='bold', color='#777777', transform=ax.transAxes)
+    for i, sub in enumerate((sub1, sub2)):
+        cx = x + w * (0.27 if i == 0 else 0.73)
+        ax.text(cx, y + h*0.56, sub['value'], ha='center', va='center',
+                fontsize=13, fontweight='bold', color=sub['color'], transform=ax.transAxes)
+        ax.text(cx, y + h*0.56 - 0.075, sub['label'], ha='center', va='top',
+                fontsize=6.5, color=sub['color'], transform=ax.transAxes)
+
+def precip_stack_card(ax, x, y, w, h, label, rain_value, heated_value):
+    """Row 3 left cell: total precip on top (no label), heated precip below it."""
+    ax.text(x + w/2, y + h - 0.03, label, ha='center', va='top',
+            fontsize=8, fontweight='bold', color='#777777', transform=ax.transAxes)
+    # Regular precip total (no sub-label)
+    ax.text(x + w/2, y + h*0.60, rain_value, ha='center', va='center',
+            fontsize=15, fontweight='bold', color='steelblue', transform=ax.transAxes)
+    # Heated precip total, with label, stacked below it
+    ax.text(x + w/2, y + h*0.28, heated_value, ha='center', va='center',
+            fontsize=13, fontweight='bold', color='darkorange', transform=ax.transAxes)
+    ax.text(x + w/2, y + h*0.28 - 0.065, "Heated", ha='center', va='top',
+            fontsize=6.5, color='darkorange', transform=ax.transAxes)
+
+
+# Pull latest reading and today's totals/min/max in one place
+today_mask = wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")
+latest = wx.tail(1)
+
+stats = [
+    dict(label="TEMPERATURE", col='AirTF_Avg', color='firebrick',
+         value=lambda v: f"{v:0.1f}\u00b0F", unit='\u00b0', unit_below=None),
+    dict(label="HUMIDITY",    col='RH_Avg',    color='seagreen',
+         value=lambda v: f"{v:0.0f}%",         unit='%', unit_below=None),
+    dict(label="DEW POINT",   col='TdC_Avg',   color='teal',
+         value=lambda v: f"{v:0.1f}\u00b0F",   unit='\u00b0', unit_below=None),
+    dict(label="PRESSURE",    col='BP_inHg',   color='indigo',
+         value=lambda v: f"{v:0.2f}",          unit='', unit_below='inHg'),
+]
+
+# Grid geometry
+col_w  = 0.44
+gap_x  = 0.08
+x_left  = 0.03
+x_right = x_left + col_w + gap_x
+
+row_h = 0.28
+y_row1 = 0.62
+y_row2 = 0.32
+y_row3 = 0.03
+
+positions_rows12 = [(x_left, y_row1), (x_right, y_row1),
+                     (x_left, y_row2), (x_right, y_row2)]
+
+for (x, y), s in zip(positions_rows12, stats):
+    now_val = latest[s['col']].values[0]
+    hi = wx_5min.loc[today_mask, s['col']].max()
+    lo = wx_5min.loc[today_mask, s['col']].min()
+    stat_card(ax_panel, x, y, col_w, row_h,
+              s['label'], s['value'](now_val), s['color'],
+              high=hi, low=lo, unit=s['unit'], unit_below=s['unit_below'])
+
+# # Row 3, left: daily precip totals (rain + heated)
+# rain_total = wx_5min.loc[today_mask, 'Rain_Tot'].sum()
+# heated_total = wx_5min.loc[today_mask, 'HeatedPrecip_Tot'].sum()
+# dual_mini_card(
+#     ax_panel, x_left, y_row3, col_w, row_h,
+#     "PRECIPITATION (TODAY)",
+#     sub1={'label': '',   'value': f"{rain_total:0.2f}\"",   'color': 'steelblue'},
+#     sub2={'label': 'Heated', 'value': f"{heated_total:0.2f}\"", 'color': 'darkorange'},
+# )   
+# Row 3, left: daily precip totals (rain on top, heated below)
+rain_total = wx_5min.loc[today_mask, 'Rain_Tot'].sum()
+heated_total = wx_5min.loc[today_mask, 'HeatedPrecip_Tot'].sum()
+precip_stack_card(
+    ax_panel, x_left, y_row3, col_w, row_h,
+    "PRECIPITATION",
+    rain_value=f"{rain_total:0.2f}\"",
+    heated_value=f"{heated_total:0.2f}\"",
+)
+
+# Row 3, right: current solar irradiance
+# solar_now = latest['SlrkW'].values[0]
+# stat_card(ax_panel, x_right, y_row3, col_w, row_h,
+#           "SOLAR IRRADIANCE", f"{solar_now:0.2f}", 'goldenrod',
+#           unit_below='kW/m\u00b2')
+
+
+
+
+
+
+# fig.text(0.02, 0.88,
+#          f"Current Conditions",
+#          ha='left',
+#          fontsize=13,
+#          fontweight='bold')
+
+# # Current T
+# fig.text(0.04, 0.86,
+#          f"{wx.tail(1)['AirTF_Avg'].values[0]:0.1f}*F",
+#          fontsize=16,
+#          fontweight='bold',
+#          color='red')
+
+# # Max T
+# high = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['AirTF_Avg'].max()
+# fig.text(0.03, 0.84,
+#          f"Today's High: {high:0.1f}*F")
+
+# # Min T
+# low = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['AirTF_Avg'].min()
+# fig.text(0.03, 0.82,
+#          f"Today's Low: {low:0.1f}*F")
+
+# # RH
+# fig.text(0.04, 0.79,
+#          f"{wx.tail(1)['RH_Avg'].values[0]:0.1f}%",
+#          fontsize=16,
+#          fontweight='bold',
+#          color='green')
+# # Max RH
+# high = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['RH_Avg'].max()
+# fig.text(0.03, 0.77,
+#          f"Today's High: {high:0.1f}%")
+
+# # Min RH
+# low = wx_5min[wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")]['RH_Avg'].min()
+# fig.text(0.03, 0.75,
+#          f"Today's Low: {low:0.1f}%")
 
 ###   Current Wind Conditions   ###
+
+
+
+
+
+###   Current Wind Panel   ###
+from matplotlib.patches import FancyBboxPatch, Circle
+
+# Panel geometry (kept as variables so alignment math stays readable)
+PANEL_X0, PANEL_Y0, PANEL_W, PANEL_H = 0.01, 0.20, 0.17, 0.22
+
+ax_windpanel = fig.add_axes((PANEL_X0, PANEL_Y0, PANEL_W, PANEL_H))
+ax_windpanel.axis('off')
+ax_windpanel.set_xlim(0, 1)
+ax_windpanel.set_ylim(0, 1)
+
+# Rounded background card
+ax_windpanel.add_patch(FancyBboxPatch(
+    (0.02, 0.02), 0.96, 0.96,
+    boxstyle="round,pad=0.02,rounding_size=0.04",
+    linewidth=1, edgecolor='#cccccc', facecolor='#f7f7f7',
+    transform=ax_windpanel.transAxes, zorder=0
+))
+
+# Header
+ax_windpanel.text(0.5, 0.90, "CURRENT WIND", ha='center', va='center',
+                   fontsize=11, fontweight='bold', color='#333333',
+                   transform=ax_windpanel.transAxes)
+
+# --- Layout anchors (in panel-fraction coords, 0-1 within ax_windpanel) ---
+row1_center = 0.58   # vertical center shared by compass AND speed/gust stack
+row2_center = 0.15   # vertical center of the max wind/gust row
+
+# --- Compass rose: top-left, its own square axes for a true circle ---
+compass_cx_frac = 0.24   # panel-fraction x-center
+compass_size_fig = 0.085  # figure-fraction diameter (fig is square, so this stays circular)
+
+compass_cx_fig = PANEL_X0 + PANEL_W * compass_cx_frac
+compass_cy_fig = PANEL_Y0 + PANEL_H * row1_center
+
+ax_compass = fig.add_axes((
+    compass_cx_fig - compass_size_fig/2,
+    compass_cy_fig - compass_size_fig/2,
+    compass_size_fig, compass_size_fig
+))
+ax_compass.set_aspect('equal')
+ax_compass.axis('off')
+ax_compass.set_xlim(-1.3, 1.3)
+ax_compass.set_ylim(-1.3, 1.3)
+
+# Outer circle
+ax_compass.add_patch(Circle((0, 0), 1.0, facecolor='white',
+                             edgecolor='#999999', linewidth=1, zorder=1))
+
+# Cardinal direction labels
+for ang, txt in [(0, 'N'), (90, 'E'), (180, 'S'), (270, 'W')]:
+    rad = np.radians(ang)
+    ax_compass.text(1.18*np.sin(rad), 1.18*np.cos(rad), txt,
+                     ha='center', va='center', fontsize=7,
+                     fontweight='bold', color='#666666')
+
+# Wind direction needle (points toward the direction the wind is coming FROM)
+wind_dir_now = latest['WindDir'].values[0]
+dir_rad = np.radians(wind_dir_now)
+needle_x = np.sin(dir_rad)
+needle_y = np.cos(dir_rad)
+
+ax_compass.annotate('', xy=(needle_x*0.92, needle_y*0.92), xytext=(0, 0),
+                     arrowprops=dict(arrowstyle='-|>', color='crimson',
+                                     linewidth=2, mutation_scale=14),
+                     zorder=3)
+ax_compass.add_patch(Circle((0, 0), 0.06, facecolor='crimson',
+                             edgecolor='none', zorder=4))
+
+# Heading readout just below the compass
+ax_windpanel.text(compass_cx_frac, row1_center - 0.24, f"{wind_dir_now:0.0f}\u00b0",
+                   ha='center', va='center', fontsize=9,
+                   fontweight='bold', color='#555555',
+                   transform=ax_windpanel.transAxes)
+
+# --- Wind speed / gust, stacked vertically, top-right, centered on row1_center ---
+wind_speed_now = latest['AveWindSp'].values[0]
+wind_gust_now = latest['WindGust'].values[0]
+stack_x = 0.72
+
+ax_windpanel.text(stack_x, row1_center + 0.14, f"{wind_speed_now:0.1f}",
+                   ha='center', va='center', fontsize=16, fontweight='bold',
+                   color='steelblue', transform=ax_windpanel.transAxes)
+ax_windpanel.text(stack_x, row1_center + 0.14 - 0.055, "mph wind",
+                   ha='center', va='top', fontsize=7, color='#777777',
+                   transform=ax_windpanel.transAxes)
+
+ax_windpanel.text(stack_x, row1_center - 0.06, f"{wind_gust_now:0.1f}",
+                   ha='center', va='center', fontsize=16, fontweight='bold',
+                   color='firebrick', transform=ax_windpanel.transAxes)
+ax_windpanel.text(stack_x, row1_center - 0.06 - 0.055, "mph gust",
+                   ha='center', va='top', fontsize=7, color='#777777',
+                   transform=ax_windpanel.transAxes)
+
+# --- Bottom row: max wind (left) and max gust (right) ---
+max_wind_today = wx_5min.loc[today_mask, 'AveWindSp'].max()
+max_gust_today = wx_5min.loc[today_mask, 'WindGust'].max()
+
+ax_windpanel.text(0.28, row2_center + 0.05, f"{max_wind_today:0.1f} mph",
+                   ha='center', va='center', fontsize=11, fontweight='bold',
+                   color='steelblue', transform=ax_windpanel.transAxes)
+ax_windpanel.text(0.28, row2_center - 0.04, "Max Wind Today",
+                   ha='center', va='top', fontsize=6.5, color='#777777',
+                   transform=ax_windpanel.transAxes)
+
+ax_windpanel.text(0.72, row2_center + 0.05, f"{max_gust_today:0.1f} mph",
+                   ha='center', va='center', fontsize=11, fontweight='bold',
+                   color='firebrick', transform=ax_windpanel.transAxes)
+ax_windpanel.text(0.72, row2_center - 0.04, "Max Gust Today",
+                   ha='center', va='top', fontsize=6.5, color='#777777',
+                   transform=ax_windpanel.transAxes)
+
+
+
+
+
+
 
 
 ###   Records for last 3 days   ###
