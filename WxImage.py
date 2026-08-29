@@ -122,7 +122,7 @@ xmax = wx['TIMESTAMP'].max()
 ###   Snow Weather Logo   ###
 img = mpimg.imread('./images/SnowWeatherLogo_Blue.png')
 # ax_logo = fig.add_axes((0.01, 0.9, 0.14, 0.14))
-ax_logo = fig.add_axes((panel_x + 0.02, panel_y + panel_h + 0.005, panel_w - 0.04, 0.14))
+ax_logo = fig.add_axes((panel_x + 0.02, panel_y + panel_h + 0.005, panel_w - 0.05, 0.14))
 ax_logo.imshow(img)
 ax_logo.axis('off') 
 
