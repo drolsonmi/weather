@@ -644,7 +644,7 @@ import paramiko
 sftp_host = "144.17.90.20"
 sftp_port = 22
 sftp_user = "weather"
-sftp_password = "Sn0wW3@th3r5t@tion"
+ftp_password = 
 
 local_files = [
     r"C:/Users/weather/Weather/weather_image.png",  # matches the savefig path above

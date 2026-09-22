@@ -493,7 +493,7 @@ from ftplib import FTP
 
 ftp_server = "144.17.90.20"
 ftp_user = "weather"
-ftp_password = "Sn0wW3@th3r5t@tion"
+ftp_password = 
 
 local_file = r"C:\Users\michael.olson2\WeatherProgram\weather_image.png"
 remote_file = "/var/www/html/community/weather/images/Weather1.png"
