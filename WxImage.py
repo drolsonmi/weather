@@ -621,30 +621,13 @@ fig.savefig(r"C:/Users/weather/Weather/weather_image.png", dpi=300)
 # plt.show()
 
 ###   Upload via FTP  ###
-# from ftplib import FTP
 
-# ftp_server = "144.17.90.20"
-# ftp_user = "weather"
-# ftp_password = "Sn0wW3@th3r5t@tion"
-
-# local_file = r"C:\Users\michael.olson2\WeatherProgram\weather_image.png"
-# remote_file = "/var/www/html/community/weather/images/Weather1.png"
-
-# ftp = FTP(ftp_server)
-# ftp.login(ftp_user, ftp_password)
-
-# with open(local_file, "rb") as file:
-#     ftp.storbinary(f"STOR (remote_file)", file)
-
-# ftp.quit()
-
-# print("Upload successful")
 import paramiko
 
 sftp_host = "144.17.90.20"
 sftp_port = 22
 sftp_user = "weather"
-ftp_password = 
+sftp_password = "hidden"   # Replace with the actual FTP password
 
 local_files = [
     r"C:/Users/weather/Weather/weather_image.png",  # matches the savefig path above
