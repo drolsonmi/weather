@@ -33,20 +33,22 @@ def load_daily():
     #####   Import and clean data   #####
 
     ###   Copy data to .csv file   ###
-    import os
-    if os.name == 'nt':  # Windows
-        # print("Running on Windows")
-        cmd = f'copy "data/Snow Weather_Daily.dat" "data/Snow_Daily.csv"'
-    else:  # Unix/Linux
-        # print("Running on Unix/Linux")
-        cmd = f'cp ./data/Snow\ Weather_Daily.dat ./data/Snow_Daily.csv'
+    # import os
+    # if os.name == 'nt':  # Windows
+    #     # print("Running on Windows")
+    #     cmd = f'copy "data/Snow Weather_Daily.dat" "data/Snow_Daily.csv"'
+    # else:  # Unix/Linux
+    #     # print("Running on Unix/Linux")
+    #     cmd = f'cp ./data/Snow\ Weather_Daily.dat ./data/Snow_Daily.csv'
 
-    os.system(cmd)
+    # os.system(cmd)
 
-    from pathlib import Path
-    data_file = Path('./data/Snow_Daily.csv')
-    if not data_file.is_file():
-        raise FileNotFoundError("The data file was not found.")
+    # from pathlib import Path
+    # data_file = Path('./data/Snow_Daily.csv')
+    # if not data_file.is_file():
+    #     raise FileNotFoundError("The data file was not found.")
+    
+    data_file = "https://snow.edu/community/weather/SnowWeather_Daily.dat"
     wx_data = pd.read_csv(data_file, header=1)
     
     ###   Fix the timestamp   ###
