@@ -46,7 +46,7 @@ GRAPH_X, GRAPH_W = 0.30, 0.48
 
 panel_x, panel_w = 0.01, 0.22
 panel_y, panel_h = 0.60, 0.29
-panel2_h = 0.22
+panel2_h = 0.19   # Current Wind panel height (was 0.22; space given to Precipitation Totals)
 
 row1_center = 0.58
 row2_center = 0.15
@@ -173,7 +173,8 @@ calendar_year_precip = _daily_last_rain[_daily_last_rain.index >= calendar_year_
 ###   Year-by-year rain to date (for the table under the Rain Gauge Panel)   ###
 # For each year on record, total rain from Oct 1 -> today's month/day and
 # from Jan 1 -> today's month/day, using the same daily totals as the gauges.
-RAIN_TABLE_MAX_YEARS = 6   # most recent years shown (keeps the table from crowding the gauges)
+RAIN_TABLE_MAX_YEARS = 6      # table is sized for this many years (+ an average row)
+RAIN_TABLE_FIRST_YEAR = 2024  # earliest year shown (5-min rain data starts in 2024)
 
 def _same_day_in_year(year, ref):
     """ref's month/day in another year (Feb 29 -> Feb 28 in non-leap years)."""
@@ -189,7 +190,8 @@ def _rain_between(start, end):
 
 rain_table_rows = []
 if not _daily_last_rain.empty:
-    for yr in range(_today_norm.year, _daily_last_rain.index.min().year - 1, -1):
+    _first_yr = max(RAIN_TABLE_FIRST_YEAR, _daily_last_rain.index.min().year)
+    for yr in range(_today_norm.year, _first_yr - 1, -1):
         end = _same_day_in_year(yr, _today_norm)
         oct1 = pd.Timestamp(year=yr, month=10, day=1)
         wy_start = oct1 if end >= oct1 else pd.Timestamp(year=yr - 1, month=10, day=1)
@@ -199,6 +201,16 @@ if not _daily_last_rain.empty:
             continue  # no complete period for this year
         rain_table_rows.append((yr, wy_total, cy_total))
 rain_table_rows = rain_table_rows[:RAIN_TABLE_MAX_YEARS]
+
+# Average rain to date for past years in the table (current year excluded).
+# Used for the table's bottom row and the "Avg" marks on the rain gauges.
+def _nanmean_or_nan(vals):
+    vals = [v for v in vals if not np.isnan(v)]
+    return float(np.mean(vals)) if vals else np.nan
+
+_past_rows = [r for r in rain_table_rows if r[0] != _today_norm.year]
+rain_avg_wy = _nanmean_or_nan([r[1] for r in _past_rows])  # since Oct 1
+rain_avg_cy = _nanmean_or_nan([r[2] for r in _past_rows])  # since Jan 1
 
 
 ###   Temperature and Relative Humidity   ###
@@ -596,7 +608,7 @@ ax_windpanel.text(0.72, row2_center - 0.04, "Max Gust",
 rt_title_h = 0.045   # title + column-header band (figure fraction)
 rt_row_h = 0.0145    # height of each year row (figure fraction)
 rt_pad = 0.008       # bottom padding
-rt_h = rt_title_h + rt_row_h * (max(1, len(rain_table_rows)) + 1) + rt_pad  # +1 = average row
+rt_h = rt_title_h + rt_row_h * (RAIN_TABLE_MAX_YEARS + 1) + rt_pad  # fixed size: 6 years + average row
 rt_y = table_bottom  # same bottom edge as the 7-day summary table
 
 panel3_y = rt_y + rt_h + 0.02  # small gap above the rain table
@@ -619,7 +631,7 @@ ax_rainpanel.text(0.5, 0.90, "PRECIPITATION TOTALS", ha='center', va='center',
                    transform=ax_rainpanel.transAxes)
  
 def rain_gauge(ax, x_center, y_bottom, y_top, width, value, max_value,
-               color, label):
+               color, label, avg=None):
     """Draw one vertical rain-gauge bar (fraction-filled tube) in axes coords."""
     # Outer tube
     ax.add_patch(FancyBboxPatch(
@@ -645,6 +657,15 @@ def rain_gauge(ax, x_center, y_bottom, y_top, width, value, max_value,
                 color='#888888', linewidth=0.8, transform=ax.transAxes, zorder=3)
         ax.text(x_center - width/2 - 0.025, ty, f"{tick}", ha='right', va='center',
                 fontsize=7.0, color='#888888', transform=ax.transAxes)
+    # Average-to-date marker: dashed line across the tube, labeled on the right
+    if avg is not None and not np.isnan(avg):
+        ay = y_bottom + (y_top - y_bottom) * max(0.0, min(1.0, avg / max_value))
+        ax.plot([x_center - width/2 - 0.01, x_center + width/2 + 0.01], [ay, ay],
+                color='#333333', linewidth=1.2, linestyle=(0, (3, 1.5)),
+                transform=ax.transAxes, zorder=4)
+        ax.text(x_center + width/2 + 0.015, ay, f"Avg {avg:0.2f}\"",
+                ha='left', va='center', fontsize=6.5, fontweight='bold',
+                color='#333333', transform=ax.transAxes, zorder=4)
     # Value, above the tube
     ax.text(x_center, y_top + 0.04, f"{value:0.2f}\"", ha='center', va='bottom',
             fontsize=11, fontweight='bold', color=color, transform=ax.transAxes)
@@ -652,13 +673,15 @@ def rain_gauge(ax, x_center, y_bottom, y_top, width, value, max_value,
     ax.text(x_center, y_bottom - 0.03, label, ha='center', va='top',
             fontsize=7.5, color='#555555', transform=ax.transAxes)
  
-gauge_y_bottom, gauge_y_top = 0.14, 0.72
+gauge_y_bottom, gauge_y_top = 0.20, 0.72  # bottom raised from 0.14 so the captions fit inside the panel
 gauge_width = 0.12
  
 rain_gauge(ax_rainpanel, 0.30, gauge_y_bottom, gauge_y_top, gauge_width,
-           water_year_precip, 16.0, 'steelblue', 'Water Year\nSince Oct 1')
+           water_year_precip, 16.0, 'steelblue', 'Water Year\nSince Oct 1',
+           avg=rain_avg_wy)
 rain_gauge(ax_rainpanel, 0.72, gauge_y_bottom, gauge_y_top, gauge_width,
-           calendar_year_precip, 16.0, 'forestgreen', 'Year\nSince Jan 1')
+           calendar_year_precip, 16.0, 'forestgreen', 'Year\nSince Jan 1',
+           avg=rain_avg_cy)
 
 
 ###   Rain-to-Date by Year Table (below the Rain Gauge Panel)   ###
@@ -716,6 +739,18 @@ for i, (yr, wy_total, cy_total) in enumerate(rain_table_rows):
         ax_raintable.text(cx, row_y, v, ha='center', va='center',
                           fontsize=8, fontweight=weight, color=c,
                           transform=ax_raintable.transAxes)
+
+# Bottom row (fixed slot below the 6 year rows): average of past years
+avg_row_y = _rt_y(rt_title_h + rt_row_h * (RAIN_TABLE_MAX_YEARS + 0.5))
+avg_line_y = avg_row_y + (rt_row_h / 2) / rt_h
+ax_raintable.plot([0.05, 0.95], [avg_line_y, avg_line_y], color='#bbbbbb',
+                  linewidth=0.8, transform=ax_raintable.transAxes)
+for cx, v, c in zip(rt_col_x,
+                    ['Avg', _fmt_rain(rain_avg_wy), _fmt_rain(rain_avg_cy)],
+                    ['#333333', 'steelblue', 'forestgreen']):
+    ax_raintable.text(cx, avg_row_y, v, ha='center', va='center',
+                      fontsize=8, fontweight='bold', fontstyle='italic', color=c,
+                      transform=ax_raintable.transAxes)
 
 
 
