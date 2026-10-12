@@ -734,7 +734,7 @@ fig.savefig(file_output, dpi=300)
 # sftp_password = "hidden"   # Replace with the actual FTP password
 
 # local_files = [
-#     r"C:/Users/weather/Weather/weather_image.png",  # matches the savefig path above
+#     r"C:/Users/weather/Weather/Weather1.png",  # matches the savefig path above
 #     r"C:/Campbellsci/LoggerNet/SnowWeather_Public.dat"]
 # remote_files = [
 #     "/var/www/html/community/weather/images/Weather1.png",
