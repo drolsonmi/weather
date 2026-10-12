@@ -32,22 +32,24 @@ import datetime
 import os
 import sys
 
+import pandas as pd
+
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 DATA_FILES = {
-    "avgT_normal": "manti_avgT_normal.tsv",
-    "maxT_normal": "manti_maxT_normal.tsv",
-    "maxT_record": "manti_maxT_record.tsv",
-    "minT_normal": "manti_minT_normal.tsv",
-    "minT_record": "manti_minT_record.tsv",
-    "precip_normal": "manti_precip_normal.tsv",
-    "precip_record": "manti_precip_record.tsv",
+    "avgT_normal": "MantiRecords/manti_avgT_normal.tsv",
+    "maxT_normal": "MantiRecords/manti_maxT_normal.tsv",
+    "maxT_record": "MantiRecords/manti_maxT_record.tsv",
+    "minT_normal": "MantiRecords/manti_minT_normal.tsv",
+    "minT_record": "MantiRecords/manti_minT_record.tsv",
+    "precip_normal": "MantiRecords/manti_precip_normal.tsv",
+    "precip_record": "MantiRecords/manti_precip_record.tsv",
 }
 
 
 def _read_rows(path):
-    """Read a tsv file and return a list of tab-split rows (raw strings)."""
+    """Read a csv file and return a list of comma-split rows (raw strings)."""
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.reader(f, delimiter="\t")
         return [row for row in reader if row]
@@ -200,22 +202,45 @@ COLUMNS = [
 ]
 
 
-def print_table(rows):
-    widths = {c: max(len(c), *(len(r[c]) for r in rows)) for c in COLUMNS}
-    sep = "-+-".join("-" * widths[c] for c in COLUMNS)
-    header = " | ".join(c.ljust(widths[c]) for c in COLUMNS)
+def build_dataframe(rows):
+    """
+    Build a DataFrame with the dates as columns and the weather
+    variables as rows.
+    """
+    df = pd.DataFrame(rows, columns=COLUMNS).set_index("Date").T
+    df.index.name = None
+    df.columns.name = None
+    return df
+
+
+# Rows that start a new section; a separator line is drawn above each.
+SECTION_STARTS = {
+    "Normal Avg Temp (F)",
+    "Normal High (F)",
+    "Normal Low (F)",
+    "Normal Precip (in)",
+}
+
+
+def print_table(df):
+    """
+    Print the transposed table (dates as columns, variables as rows),
+    with a separator line above each section-starting row.
+    """
+    label_w = max(len(str(i)) for i in df.index)
+    col_ws = [max(len(str(c)), *(len(str(v)) for v in df[c]))
+              for c in df.columns]
+
+    sep = "-+-".join(["-" * label_w] + ["-" * w for w in col_ws])
+    header = " | ".join([" " * label_w] +
+                        [str(c).center(w) for c, w in zip(df.columns, col_ws)])
     print(header)
-    print(sep)
-    for r in rows:
-        print(" | ".join(r[c].ljust(widths[c]) for c in COLUMNS))
 
-
-def write_csv(rows, path):
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=COLUMNS)
-        writer.writeheader()
-        for r in rows:
-            writer.writerow(r)
+    for label, row in df.iterrows():
+        if label in SECTION_STARTS:
+            print(sep)
+        cells = [str(v).rjust(w) for v, w in zip(row, col_ws)]
+        print(" | ".join([str(label).ljust(label_w)] + cells))
 
 
 def parse_date_arg(date_str, year_arg):
@@ -279,10 +304,11 @@ def main():
 
     print(f"Weather summary for MANTI, UT — {target_date.strftime('%B %d')} "
           f"(and the day before/after)\n")
-    print_table(rows)
+    df = build_dataframe(rows)
+    print_table(df)
 
     if args.csv:
-        write_csv(rows, args.csv)
+        df.to_csv(args.csv)
         print(f"\nSaved CSV to: {args.csv}")
 
 

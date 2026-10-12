@@ -5,9 +5,24 @@ import matplotlib.ticker as ticker
 import matplotlib.dates as mdates
 import matplotlib.image as mpimg
 import matplotlib.transforms as transforms
-from matplotlib.patches import FancyBboxPatch, Circle
+from matplotlib.patches import FancyBboxPatch, Circle, Rectangle
 import seaborn as sns
 
+# Online Data Sources - For testing and development
+file_5min = 'https://snow.edu/community/weather/SnowWeather_5min.dat'
+file_15min = 'https://snow.edu/community/weather/SnowWeather_15min.dat'
+file_daily = 'https://snow.edu/community/weather/SnowWeather_Daily.dat'
+file_now = 'https://snow.edu/community/weather/SnowWeather_Public.dat'
+file_logo = './images/SnowWeatherLogo_Blue.png'
+file_output = './images/weather_image.png'
+
+# On Computer Data Sources - For running the actual program
+# file_5min = r'C:/Campbellsci/LoggerNet/SnowWeather_5Min.dat'
+# file_15min = r'C:/Campbellsci/LoggerNet/SnowWeather_15Min.dat'
+# file_daily = r'C:/Campbellsci/LoggerNet/SnowWeather_Daily.dat'
+# file_now = r'C:/Campbellsci/LoggerNet/SnowWeather_Public.dat'
+# file_logo = r'C:/Users/weather/Weather/SnowWeatherLogo_Blue.png'
+# file_output = r'C:/Users/weather/Weather/Weather1.png'
 
 the_months = {1:'January',2:'February',3:'March',4:'April',
               5:'May',6:'June',7:'July',8:'August',9:'September',
@@ -42,18 +57,14 @@ compass_size_fig = 0.085
 
 
 ###   Load the data   ###
-# wx_daily = pd.read_csv('https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_Daily.dat', header=1)
-
-###   5-minute data -- used for all the meteogram graphs, and for   ###
-###   today's high/low stats and daily precip totals                ###
-# skiprows=[0,2,3] skips file-info, units, and blank rows -- keeps row 1
-# (the real field names) as the header, so numeric columns parse cleanly
-wx_5min = pd.read_csv(r'C:\Campbellsci\LoggerNet\SnowWeather_5Min.dat',
-                       skiprows=[0, 2, 3], header=0)
-
-###   Most recent observation (single row) -- used for Current Conditions   ###
-wx_now = pd.read_csv(r'C:\Campbellsci\LoggerNet\SnowWeather_Public.dat',
-                      skiprows=[0, 2, 3], header=0)
+### Daily Data
+wx_daily = pd.read_csv(file_daily, skiprows=[0, 2, 3], header=0)
+###   5-minute data
+wx_5min = pd.read_csv(file_5min, skiprows=[0, 2, 3], header=0) 
+###   Load 15-minute data   ###
+wx_15min = pd.read_csv(file_15min, skiprows=[0, 2, 3], header=0)
+###   Most recent observation (single row) 
+wx_now = pd.read_csv(file_now, skiprows=[0, 2, 3], header=0)
 
 ###   The Public table's field names differ from the 5-min table's        ###
 ###   (instantaneous readings, not averages/totals) -- rename to match.    ###
@@ -70,6 +81,7 @@ wx_now = wx_now.rename(columns={
 ###   Change TIMESTAMP to datetime format   ###
 wx_5min['TIMESTAMP'] = pd.to_datetime(wx_5min['TIMESTAMP'], errors='coerce')
 wx_5min = wx_5min.dropna(subset=['TIMESTAMP'])
+wx_15min['TIMESTAMP'] = pd.to_datetime(wx_15min['TIMESTAMP'])
 
 ###   Clean the data   ###
 # wx_5min = wx_5min.drop([0,1], axis=0)
@@ -110,13 +122,6 @@ for _col in ['AirTF_Avg', 'RH_Avg', 'TdC_Avg', 'BP_inHg', 'WindDir', 'AveWindSp'
 wx_now.loc[wx_now['AirTF_Avg'] > 150, 'AirTF_Avg'] = np.nan
 wx_now.loc[wx_now['AirTF_Avg'] < -30, 'AirTF_Avg'] = np.nan
 
-###   Load 15-minute data   ###
-wx_15min = pd.read_csv(
-    'https://raw.githubusercontent.com/drolsonmi/weather/refs/heads/main/data/Snow%20Weather_FifteenMin.dat',
-    skiprows=[0, 2, 3],  # keep row 1 (variable names) as header
-    header=0
-)
-wx_15min['TIMESTAMP'] = pd.to_datetime(wx_15min['TIMESTAMP'])
 
 #######  Data Subset  #######
 def obtain_subset(X, endtime="now", starttime=0):
@@ -141,7 +146,7 @@ xmin = wx['TIMESTAMP'].min()
 xmax = wx['TIMESTAMP'].max()
 
 ###   Snow Weather Logo   ###
-img = mpimg.imread(r"C:\Users\michael.olson2\WeatherProgram\SnowWeatherLogo_Blue.png")
+img = mpimg.imread(file_logo)
 # ax_logo = fig.add_axes((0.01, 0.9, 0.14, 0.14))
 ax_logo = fig.add_axes((panel_x + 0.02, panel_y + panel_h + 0.005, panel_w - 0.05, 0.14))
 ax_logo.imshow(img)
@@ -151,6 +156,49 @@ ax_logo.axis('off')
 today_mask = wx_5min['Date'] == pd.Timestamp.today().strftime("%Y-%m-%d")  # still from wx_5min: needed for today's high/low/totals
 latest = wx_now.tail(1)  # current conditions come from the "now" (Public) file
 
+###   Season / calendar-year precip totals (for the Rain Panel)   ###
+# RainRunTot resets at midnight, so each day's *last* value is that day's total.
+# Summing those daily totals over a date range gives the cumulative precip for that range.
+_daily_last_rain = wx_5min.sort_values('TIMESTAMP').groupby('Date')['RainRunTot'].last()
+
+_today_norm = pd.Timestamp.today().normalize()
+_oct1_this_year = pd.Timestamp(year=_today_norm.year, month=10, day=1)
+water_year_start = _oct1_this_year if _today_norm >= _oct1_this_year \
+    else pd.Timestamp(year=_today_norm.year - 1, month=10, day=1)
+calendar_year_start = pd.Timestamp(year=_today_norm.year, month=1, day=1)
+
+water_year_precip = _daily_last_rain[_daily_last_rain.index >= water_year_start].sum()
+calendar_year_precip = _daily_last_rain[_daily_last_rain.index >= calendar_year_start].sum()
+
+###   Year-by-year rain to date (for the table under the Rain Gauge Panel)   ###
+# For each year on record, total rain from Oct 1 -> today's month/day and
+# from Jan 1 -> today's month/day, using the same daily totals as the gauges.
+RAIN_TABLE_MAX_YEARS = 6   # most recent years shown (keeps the table from crowding the gauges)
+
+def _same_day_in_year(year, ref):
+    """ref's month/day in another year (Feb 29 -> Feb 28 in non-leap years)."""
+    day = min(ref.day, pd.Timestamp(year=year, month=ref.month, day=1).days_in_month)
+    return pd.Timestamp(year=year, month=ref.month, day=day)
+
+def _rain_between(start, end):
+    """Rain total for start..end (inclusive); NaN if the record doesn't cover the start."""
+    if _daily_last_rain.empty or _daily_last_rain.index.min() > start:
+        return np.nan
+    idx = _daily_last_rain.index
+    return _daily_last_rain[(idx >= start) & (idx <= end)].sum()
+
+rain_table_rows = []
+if not _daily_last_rain.empty:
+    for yr in range(_today_norm.year, _daily_last_rain.index.min().year - 1, -1):
+        end = _same_day_in_year(yr, _today_norm)
+        oct1 = pd.Timestamp(year=yr, month=10, day=1)
+        wy_start = oct1 if end >= oct1 else pd.Timestamp(year=yr - 1, month=10, day=1)
+        wy_total = _rain_between(wy_start, end)
+        cy_total = _rain_between(pd.Timestamp(year=yr, month=1, day=1), end)
+        if np.isnan(wy_total) and np.isnan(cy_total):
+            continue  # no complete period for this year
+        rain_table_rows.append((yr, wy_total, cy_total))
+rain_table_rows = rain_table_rows[:RAIN_TABLE_MAX_YEARS]
 
 
 ###   Temperature and Relative Humidity   ###
@@ -181,6 +229,7 @@ ax_press.set_xlabel('')
 ax_press.set_ylabel('Pressure (inHg)', color='purple')
 ax_press.set_title('Atmospheric Pressure (MSLP)', fontsize=12)
 ax_press.set_xlim(xmin, xmax)
+ax_rh.set_ylim(max(0,round(wx['RH_Avg'].min() // 10)*10), min(100,(round(wx['RH_Avg'].max() // 10) + 1) * 10))
 
 
 ###   Precipitation   ###
@@ -235,10 +284,13 @@ ax_wind.set_ylabel('Wind Speed (mph)', color='blue')
 
 # Trim to the same time window as your existing plot
 wx15_plot = wx_15min[(wx_15min['TIMESTAMP'] >= xmin) & (wx_15min['TIMESTAMP'] <= xmax)].copy()
+# Only every other arrow: on the hour and on the half hour
+wx15_plot = wx15_plot[wx15_plot['TIMESTAMP'].dt.minute % 30 == 0]
 
 # u, v components of the vector the wind is blowing TOWARD
 wind_dir_rad = np.radians(wx15_plot['WindDir'])
-speed_ratio = (wx15_plot['AveWindSp'] + wx15_plot['AveWindSp'].max()) / (2*wx15_plot['AveWindSp'].max())
+# Arrow length = speed / max(15 mph, fastest speed shown)
+speed_ratio = wx15_plot['AveWindSp'] / max(15, wx15_plot['AveWindSp'].max())
 u = -np.sin(wind_dir_rad) * speed_ratio
 v = -np.cos(wind_dir_rad) * speed_ratio
 
@@ -262,7 +314,61 @@ ax_solar.set_ylabel(r'$\text{Power (}kW/m^2\text{)}$', color='orange')
 ax_solar.set_title('Solar Irradiance', fontsize=12)
 
 
+###   7-Day Summary Table   ###
+table_top, table_bottom = 0.205, 0.02
+ax_table = fig.add_axes((GRAPH_X, table_bottom, GRAPH_W, table_top - table_bottom))
+ax_table.axis('off')
+ax_table.set_xlim(0, 1)
+ax_table.set_ylim(0, 1)
 
+# Background card, matching the other panels
+ax_table.add_patch(FancyBboxPatch(
+    (0.0, 0.0), 1.0, 1.0,
+    boxstyle="round,pad=0.01,rounding_size=0.03",
+    linewidth=1, edgecolor='#cccccc', facecolor='#f7f7f7',
+    transform=ax_table.transAxes, zorder=0
+))
+
+ax_table.text(0.5, 0.93, "7-DAY SUMMARY", ha='center', va='center',
+              fontsize=11, fontweight='bold', color='#333333',
+              transform=ax_table.transAxes)
+
+# Daily stats from wx_5min: high/low temp, and each day's final running
+# totals for Rain and Heated Precip (same approach as the rain gauge panel)
+daily_summary = wx_5min.sort_values('TIMESTAMP').groupby('Date').agg(
+    MaxTemp=('AirTF_Avg', 'max'),
+    MinTemp=('AirTF_Avg', 'min'),
+    TotalPrecip=('RainRunTot', 'last'),
+    TotalHeatedPrecip=('HeatedRunTot', 'last'),
+).reset_index()
+
+last7 = daily_summary.tail(7).sort_values('Date', ascending=False).reset_index(drop=True)
+
+col_x = [0.14, 0.34, 0.50, 0.68, 0.87]
+headers = ['Date', 'High (\u00b0F)', 'Low (\u00b0F)', 'Precip (in)', 'Heated (in)']
+
+header_y = 0.80
+for cx, h in zip(col_x, headers):
+    ax_table.text(cx, header_y, h, ha='center', va='center',
+                  fontsize=8.5, fontweight='bold', color='#555555',
+                  transform=ax_table.transAxes)
+ax_table.plot([0.03, 0.97], [header_y - 0.06, header_y - 0.06], color='#bbbbbb',
+              linewidth=0.8, transform=ax_table.transAxes)
+
+row_ys = np.linspace(header_y - 0.14, 0.06, len(last7))
+for i, (row_y, (_, row)) in enumerate(zip(row_ys, last7.iterrows())):
+    if i % 2 == 1:
+        ax_table.add_patch(Rectangle((0.02, row_y - 0.045), 0.96, 0.09,
+                                      facecolor='#eeeeee', edgecolor='none',
+                                      transform=ax_table.transAxes, zorder=0.5))
+    date_str = pd.Timestamp(row['Date']).strftime(f'%b {date_flag}')
+    values = [date_str, f"{row['MaxTemp']:0.1f}", f"{row['MinTemp']:0.1f}",
+              f"{row['TotalPrecip']:0.2f}", f"{row['TotalHeatedPrecip']:0.2f}"]
+    for cx, v in zip(col_x, values):
+        ax_table.text(cx, row_y, v, ha='center', va='center',
+                       fontsize=8, color='#333333', transform=ax_table.transAxes)
+
+        
 
 ###   Current Conditions Panel   ###
 
@@ -432,12 +538,13 @@ dir_rad = np.radians(wind_dir_now)
 needle_x = np.sin(dir_rad)
 needle_y = np.cos(dir_rad)
 
-ax_compass.annotate('', xy=(needle_x*0.92, needle_y*0.92), xytext=(0, 0),
+# Arrow starts at the rim (direction the wind comes FROM) and points to the center
+ax_compass.annotate('', xy=(0, 0), xytext=(needle_x*0.92, needle_y*0.92),
                      arrowprops=dict(arrowstyle='-|>', color='crimson',
                                      linewidth=2, mutation_scale=14),
                      zorder=3)
 ax_compass.add_patch(Circle((0, 0), 0.06, facecolor='crimson',
-                             edgecolor='none', zorder=4))
+                             edgecolor='none', zorder=2))
 
 ax_windpanel.text(compass_cx_frac, row1_center - 0.24, f"{wind_dir_now:0.0f}\u00b0",
                    ha='center', va='center', fontsize=9,
@@ -481,29 +588,168 @@ ax_windpanel.text(0.72, row2_center - 0.04, "Max Gust",
                    transform=ax_windpanel.transAxes)
 
 
-###   Records for last 3 days   ###
+###   Rain Gauge Panel   ###
+ 
+# The rain-by-year table sits below this panel, bottom-aligned with the
+# 7-day summary table; its height grows with the number of years, and the
+# gauge panel takes whatever space is left above it.
+rt_title_h = 0.045   # title + column-header band (figure fraction)
+rt_row_h = 0.0145    # height of each year row (figure fraction)
+rt_pad = 0.008       # bottom padding
+rt_h = rt_title_h + rt_row_h * (max(1, len(rain_table_rows)) + 1) + rt_pad  # +1 = average row
+rt_y = table_bottom  # same bottom edge as the 7-day summary table
+
+panel3_y = rt_y + rt_h + 0.02  # small gap above the rain table
+panel3_h = (panel2_y - 0.02) - panel3_y  # small gap below the wind panel
+ 
+ax_rainpanel = fig.add_axes((panel_x, panel3_y, panel_w, panel3_h))
+ax_rainpanel.axis('off')
+ax_rainpanel.set_xlim(0, 1)
+ax_rainpanel.set_ylim(0, 1)
+ 
+ax_rainpanel.add_patch(FancyBboxPatch(
+    (0.02, 0.02), 0.96, 0.96,
+    boxstyle="round,pad=0.02,rounding_size=0.04",
+    linewidth=1, edgecolor='#cccccc', facecolor='#f7f7f7',
+    transform=ax_rainpanel.transAxes, zorder=0
+))
+ 
+ax_rainpanel.text(0.5, 0.90, "PRECIPITATION TOTALS", ha='center', va='center',
+                   fontsize=11, fontweight='bold', color='#333333',
+                   transform=ax_rainpanel.transAxes)
+ 
+def rain_gauge(ax, x_center, y_bottom, y_top, width, value, max_value,
+               color, label):
+    """Draw one vertical rain-gauge bar (fraction-filled tube) in axes coords."""
+    # Outer tube
+    ax.add_patch(FancyBboxPatch(
+        (x_center - width/2, y_bottom), width, y_top - y_bottom,
+        boxstyle="round,pad=0,rounding_size=0.01",
+        linewidth=1.2, edgecolor='#888888', facecolor='white',
+        transform=ax.transAxes, zorder=1
+    ))
+    # Fill, clipped to the gauge's max
+    frac = max(0.0, min(1.0, value / max_value))
+    fill_h = (y_top - y_bottom) * frac
+    if fill_h > 0:
+        ax.add_patch(FancyBboxPatch(
+            (x_center - width/2, y_bottom), width, fill_h,
+            boxstyle="round,pad=0,rounding_size=0.01",
+            linewidth=0, facecolor=color, alpha=0.85,
+            transform=ax.transAxes, zorder=2
+        ))
+    # Tick marks every 2 inches
+    for tick in range(0, int(max_value) + 1, 2):
+        ty = y_bottom + (y_top - y_bottom) * (tick / max_value)
+        ax.plot([x_center - width/2 - 0.015, x_center - width/2], [ty, ty],
+                color='#888888', linewidth=0.8, transform=ax.transAxes, zorder=3)
+        ax.text(x_center - width/2 - 0.025, ty, f"{tick}", ha='right', va='center',
+                fontsize=7.0, color='#888888', transform=ax.transAxes)
+    # Value, above the tube
+    ax.text(x_center, y_top + 0.04, f"{value:0.2f}\"", ha='center', va='bottom',
+            fontsize=11, fontweight='bold', color=color, transform=ax.transAxes)
+    # Caption, below the tube
+    ax.text(x_center, y_bottom - 0.03, label, ha='center', va='top',
+            fontsize=7.5, color='#555555', transform=ax.transAxes)
+ 
+gauge_y_bottom, gauge_y_top = 0.14, 0.72
+gauge_width = 0.12
+ 
+rain_gauge(ax_rainpanel, 0.30, gauge_y_bottom, gauge_y_top, gauge_width,
+           water_year_precip, 16.0, 'steelblue', 'Water Year\nSince Oct 1')
+rain_gauge(ax_rainpanel, 0.72, gauge_y_bottom, gauge_y_top, gauge_width,
+           calendar_year_precip, 16.0, 'forestgreen', 'Year\nSince Jan 1')
+
+
+###   Rain-to-Date by Year Table (below the Rain Gauge Panel)   ###
+
+ax_raintable = fig.add_axes((panel_x, rt_y, panel_w, rt_h))
+ax_raintable.axis('off')
+ax_raintable.set_xlim(0, 1)
+ax_raintable.set_ylim(0, 1)
+
+# Same card x-extent as the rain gauge panel, so the widths match
+ax_raintable.add_patch(FancyBboxPatch(
+    (0.02, 0.02), 0.96, 0.96,
+    boxstyle="round,pad=0.02,rounding_size=0.04",
+    linewidth=1, edgecolor='#cccccc', facecolor='#f7f7f7',
+    transform=ax_raintable.transAxes, zorder=0
+))
+
+def _rt_y(offset_from_top):
+    """Figure-fraction offset from the top of the table -> axes fraction."""
+    return 1 - offset_from_top / rt_h
+
+thru_str = _today_norm.strftime(f'%b {date_flag}')
+ax_raintable.text(0.5, _rt_y(0.012), f"RAIN THROUGH {thru_str.upper()}",
+                  ha='center', va='center', fontsize=10, fontweight='bold',
+                  color='#333333', transform=ax_raintable.transAxes)
+
+rt_col_x = [0.20, 0.50, 0.79]
+rt_headers = ['Year', 'Since Oct 1', 'Since Jan 1']
+for cx, h in zip(rt_col_x, rt_headers):
+    ax_raintable.text(cx, _rt_y(0.031), h, ha='center', va='center',
+                      fontsize=7.5, fontweight='bold', color='#555555',
+                      transform=ax_raintable.transAxes)
+ax_raintable.plot([0.05, 0.95], [_rt_y(0.040), _rt_y(0.040)], color='#bbbbbb',
+                  linewidth=0.8, transform=ax_raintable.transAxes)
+
+def _fmt_rain(v):
+    return '\u2014' if np.isnan(v) else f"{v:0.2f}"
+
+if not rain_table_rows:
+    ax_raintable.text(0.5, _rt_y(rt_title_h + rt_row_h/2), "No data",
+                      ha='center', va='center', fontsize=8, color='#777777',
+                      transform=ax_raintable.transAxes)
+
+for i, (yr, wy_total, cy_total) in enumerate(rain_table_rows):
+    row_y = _rt_y(rt_title_h + rt_row_h * (i + 0.5))
+    if i % 2 == 1:
+        band_h = rt_row_h / rt_h
+        ax_raintable.add_patch(Rectangle((0.04, row_y - band_h/2), 0.92, band_h,
+                                         facecolor='#eeeeee', edgecolor='none',
+                                         transform=ax_raintable.transAxes, zorder=0.5))
+    weight = 'bold' if i == 0 else 'normal'  # highlight the current year
+    for cx, v, c in zip(rt_col_x,
+                        [str(yr), _fmt_rain(wy_total), _fmt_rain(cy_total)],
+                        ['#333333', 'steelblue', 'forestgreen']):
+        ax_raintable.text(cx, row_y, v, ha='center', va='center',
+                          fontsize=8, fontweight=weight, color=c,
+                          transform=ax_raintable.transAxes)
+
+
 
 
 ###   Output   ###
-fig.savefig(r"C:\Users\michael.olson2\WeatherProgram\weather_image.png", dpi=300)
+fig.savefig(file_output, dpi=300)
 # plt.show()
 
 ###   Upload via FTP  ###
-from ftplib import FTP
 
-ftp_server = "144.17.90.20"
-ftp_user = "weather"
-ftp_password = 
+# import paramiko
 
-local_file = r"C:\Users\michael.olson2\WeatherProgram\weather_image.png"
-remote_file = "/var/www/html/community/weather/images/Weather1.png"
+# sftp_host = "144.17.90.20"
+# sftp_port = 22
+# sftp_user = "weather"
+# sftp_password = "hidden"   # Replace with the actual FTP password
 
-ftp = FTP(ftp_server)
-ftp.login(ftp_user, ftp_password)
+# local_files = [
+#     r"C:/Users/weather/Weather/weather_image.png",  # matches the savefig path above
+#     r"C:/Campbellsci/LoggerNet/SnowWeather_Public.dat"]
+# remote_files = [
+#     "/var/www/html/community/weather/images/Weather1.png",
+#     "/var/www/html/community/weather/SnowWeather_Public.dat"]
 
-with open(local_file, "rb") as file:
-    ftp.storbinary(f"STOR (remote_file)", file)
+# for local_file,remote_file in zip(local_files,remote_files):
+#     try:
+#         transport = paramiko.Transport((sftp_host, sftp_port))
+#         transport.connect(username=sftp_user, password=sftp_password)
+#         sftp = paramiko.SFTPClient.from_transport(transport)
 
-ftp.quit()
+#         sftp.put(local_file, remote_file)
 
-print("Upload successful")
+#         sftp.close()
+#         transport.close()
+#         print("Upload successful")
+#     except Exception as e:
+#         print(f"Upload failed: {e}")
