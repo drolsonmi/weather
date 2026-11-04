@@ -1,3 +1,7 @@
+## Snow College Weather Station Display
+## Created by Dr. Michael E. Olson with the assistance of Claude AI
+## Last update: November 4, 2026
+
 import numpy as np 
 import pandas as pd 
 import matplotlib.pyplot as plt
@@ -61,7 +65,7 @@ LOGO_X, LOGO_Y, LOGO_W, LOGO_H = 0.36, FIG_H - 1.26, 2.04, 1.68   # logo box (to
 TITLE_X = 7.08                                 # horizontal center of the title lines
 TITLE_Y = LOGO_Y + LOGO_H/2                    # title block is centered on the logo
 TOP_ROW_TOP = FIG_H - 1.32                     # top edge of the top-row panels
-TOP_ROW_H = 3.20                               # height of all three top-row panels (was 3.48)
+TOP_ROW_H = 2.55                               # height of all three top-row panels (was 3.20)
 WIND_W = 2.80                                  # Current Wind width
 COND_W = RIGHT_X - GAP - WIND_W - GAP - MARGIN # Current Conditions fills the rest
 panel_x, panel_w = MARGIN, COND_W
@@ -153,6 +157,23 @@ wx_now.loc[wx_now['AirTF_Avg'] > 150, 'AirTF_Avg'] = np.nan
 wx_now.loc[wx_now['AirTF_Avg'] < -30, 'AirTF_Avg'] = np.nan
 
 
+###   Time zones (daylight saving time)   ###
+# The logger's clock stays on one fixed offset all year -- it does not change
+# for daylight saving time. The title and the graph time axes are converted
+# from that fixed offset to local Mountain time, so they follow MST/MDT
+# automatically. (Daily totals still use the logger's own days.)
+LOGGER_TZ = 'Etc/GMT+6'        # logger clock = UTC-6 all year ('Etc/GMT+7' if it runs on MST;
+                               #  in these names "+" means west of UTC)
+LOCAL_TZ = 'America/Denver'    # Mountain time, with daylight saving time
+
+def logger_to_utc(ts):
+    """Logger timestamps -> UTC (naive), which matplotlib places on the time axis."""
+    return ts.dt.tz_localize(LOGGER_TZ).dt.tz_convert('UTC').dt.tz_localize(None)
+
+wx_5min['PlotTime'] = logger_to_utc(wx_5min['TIMESTAMP'])
+wx_15min['PlotTime'] = logger_to_utc(wx_15min['TIMESTAMP'])
+
+
 #######  Data Subset  #######
 def obtain_subset(X, endtime="now", starttime=0):
     return X.tail(288)
@@ -161,20 +182,20 @@ wx = obtain_subset(wx_5min)
 
 #######  Create the image  #######
 sns.set_style("darkgrid")
+plt.rcParams['timezone'] = LOCAL_TZ   # graph time labels are shown in local time
 
-title_timestamp = wx_now['TIMESTAMP'].iloc[-1].strftime(f'%B {date_flag}, %Y - {hour_flag}:%M %p')
+_now_local = wx_now['TIMESTAMP'].iloc[-1].tz_localize(LOGGER_TZ).tz_convert(LOCAL_TZ)
+title_timestamp = _now_local.strftime(f'%B {date_flag}, %Y - {hour_flag}:%M %p %Z')  # e.g. "... 2:15 PM MST"
 
 fig = plt.figure(figsize=(FIG_W, FIG_H))
 # Two-line title: station name over the date, centered vertically on the logo
 fig.text(TITLE_X / FIG_W, (TITLE_Y + 0.02) / FIG_H, "Snow College Weather Station",
          ha='center', va='bottom', fontsize=20, fontweight='bold')
-fig.text(TITLE_X / FIG_W, (TITLE_Y - 0.25) / FIG_H, "Ephraim, Utah",
-         ha='center', va='bottom', fontsize=16, fontweight='bold')
-fig.text(TITLE_X / FIG_W, (TITLE_Y - 0.30) / FIG_H, title_timestamp,
+fig.text(TITLE_X / FIG_W, (TITLE_Y - 0.02) / FIG_H, title_timestamp,
          ha='center', va='top', fontsize=16, fontweight='bold', color='#444444')
 
-xmin = wx['TIMESTAMP'].min()
-xmax = wx['TIMESTAMP'].max()
+xmin = wx['PlotTime'].min()
+xmax = wx['PlotTime'].max()
 
 ###   Snow Weather Logo   ###
 img = mpimg.imread(file_logo)
@@ -247,7 +268,7 @@ rain_avg_cy = _nanmean_or_nan([r[2] for r in _past_rows])  # since Jan 1
 
 # Temperature
 ax_temp = fig.add_axes(fig_rect(GRAPH_X, GRAPH_TOP - 1.2, GRAPH_W, GRAPH_H))
-sns.lineplot(data=wx, x='TIMESTAMP', y='AirTF_Avg', ax=ax_temp, color='red')
+sns.lineplot(data=wx, x='PlotTime', y='AirTF_Avg', ax=ax_temp, color='red')
 ax_temp.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_temp.set_xlabel('')
 ax_temp.set_xlim(xmin, xmax)
@@ -256,7 +277,7 @@ ax_temp.set_title('Temperature and Relative Humidity', fontsize=12)
 
 # Relative Humidity
 ax_rh = ax_temp.twinx()
-sns.lineplot(data=wx, x='TIMESTAMP', y='RH_Avg', ax=ax_rh, color='green')
+sns.lineplot(data=wx, x='PlotTime', y='RH_Avg', ax=ax_rh, color='green')
 ax_rh.set_ylabel('Relative Humidity (%)', color='green')
 # ax_temp.grid(False, which='major', axis='x')
 ax_rh.grid(False, which='major', axis='x')
@@ -265,7 +286,7 @@ ax_rh.set_xlim(xmin, xmax)
 
 ###   Pressure   ###
 ax_press = fig.add_axes(fig_rect(GRAPH_X, GRAPH_TOP - 3.0, GRAPH_W, GRAPH_H))
-sns.lineplot(data=wx, x='TIMESTAMP', y='BP_inHg', ax=ax_press, color='purple')
+sns.lineplot(data=wx, x='PlotTime', y='BP_inHg', ax=ax_press, color='purple')
 ax_press.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_press.set_xlabel('')
 ax_press.set_ylabel('Pressure (inHg)', color='purple')
@@ -279,7 +300,7 @@ ax_rh.set_ylim(max(0,round(wx['RH_Avg'].min() // 10)*10), min(100,(round(wx['RH_
 ax_precip = fig.add_axes(fig_rect(GRAPH_X, GRAPH_TOP - 4.8, GRAPH_W, GRAPH_H))
 sns.lineplot(
     data=wx,
-    x='TIMESTAMP',
+    x='PlotTime',
     y='RainRunTot',
     ax=ax_precip,
     color='blue'
@@ -294,7 +315,7 @@ ax_precip.set_xlim(xmin, xmax)
 ax_heated = ax_precip.twinx()
 sns.lineplot(
     data=wx,
-    x='TIMESTAMP',
+    x='PlotTime',
     y='HeatedRunTot',
     ax=ax_heated,
     color='orange'
@@ -313,8 +334,8 @@ ax_heated.set_ylim(0, max(0.021, ymax+0.002))
 
 # Wind Speed
 ax_wind = fig.add_axes(fig_rect(GRAPH_X, GRAPH_TOP - 6.84, GRAPH_W, GRAPH_H))
-sns.lineplot(data=wx, x='TIMESTAMP', y='AveWindSp', ax=ax_wind, color='blue')
-sns.scatterplot(data=wx, x='TIMESTAMP', y='WindGust', ax=ax_wind, color='red', s=3)
+sns.lineplot(data=wx, x='PlotTime', y='AveWindSp', ax=ax_wind, color='blue')
+sns.scatterplot(data=wx, x='PlotTime', y='WindGust', ax=ax_wind, color='red', s=3)
 ax_wind.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_wind.set_xlabel('')
 ax_wind.set_xlim(xmin, xmax)
@@ -325,7 +346,7 @@ ax_wind.set_ylabel('Wind Speed (mph)', color='blue')
 # Wind Direction
 
 # Trim to the same time window as your existing plot
-wx15_plot = wx_15min[(wx_15min['TIMESTAMP'] >= xmin) & (wx_15min['TIMESTAMP'] <= xmax)].copy()
+wx15_plot = wx_15min[(wx_15min['PlotTime'] >= xmin) & (wx_15min['PlotTime'] <= xmax)].copy()
 # Only every other arrow: on the hour and on the half hour
 wx15_plot = wx15_plot[wx15_plot['TIMESTAMP'].dt.minute % 30 == 0]
 
@@ -342,13 +363,13 @@ ax_dir.set_xlim(xmin, xmax)
 ax_dir.set_title('Wind Speed and Direction', fontsize=12)
 
 trans2 = transforms.blended_transform_factory(ax_dir.transData, ax_dir.transAxes)
-ax_dir.quiver(wx15_plot['TIMESTAMP'], [0.5]*len(wx15_plot), u, v,
+ax_dir.quiver(wx15_plot['PlotTime'], [0.5]*len(wx15_plot), u, v,
               transform=trans2, scale=25, width=0.003,
               headwidth=3, headlength=4, color='black', alpha=0.5)
 
 ###   Solar Radiation   ###
 ax_solar = fig.add_axes(fig_rect(GRAPH_X, GRAPH_TOP - 8.64, GRAPH_W, GRAPH_H))
-sns.lineplot(data=wx, x='TIMESTAMP', y='SlrkW', ax=ax_solar, color='orange')
+sns.lineplot(data=wx, x='PlotTime', y='SlrkW', ax=ax_solar, color='orange')
 ax_solar.xaxis.set_major_formatter(mdates.DateFormatter(time_fmt))
 ax_solar.set_xlabel('')
 ax_solar.set_xlim(xmin, xmax)
@@ -439,20 +460,41 @@ ax_panel.text(0.5, 0.93, "CURRENT CONDITIONS", ha='center', va='center',
               transform=ax_panel.transAxes)
 
 def stat_card(ax, x, y, w, h, label, value, color,
-              high=None, low=None, unit='', unit_below=None,
-              hl_decimals=1, hl_unit_below=False, value_y=None, shift=0.0):
+              high=None, low=None, unit='', unit_below=None, unit_beside=None,
+              hl_decimals=1, hl_unit_below=False, value_y=None, shift=0.0,
+              hl_x=(0.28, 0.72)):
     """Draw one label / big-value / high-low stat block in axes-fraction coords.
 
     value_y: put the big value at this height instead of the default
     shift:   move the big value and the High/Low up by this amount
+    unit_beside: small unit just right of the big value (the pair stays centered)
+    hl_x:    horizontal positions of High and Low (fractions of the card width)
     """
     # Label
     ax.text(x + w/2, y + h - 0.03, label, ha='center', va='top',
             fontsize=8, fontweight='bold', color='#777777', transform=ax.transAxes)
     # Big value -- moved down (closer to High/Low) to tighten the gap
     vy = value_y if value_y is not None else y + h*0.44 + 0.03 + shift
-    ax.text(x + w/2, vy, value, ha='center', va='center',
-            fontsize=19, fontweight='bold', color=color, transform=ax.transAxes)
+    if unit_beside:
+        # Measure both pieces, then place them so value + unit is centered as a group
+        t_val = ax.text(x + w/2, vy, value, ha='left', va='center',
+                        fontsize=19, fontweight='bold', color=color, transform=ax.transAxes)
+        t_unit = ax.text(x + w/2, vy, unit_beside, ha='left', va='baseline',
+                         fontsize=9, color=color, transform=ax.transAxes)
+        renderer = ax.figure.canvas.get_renderer()
+        to_axes = ax.transAxes.inverted()
+        def _width(t):
+            bb = t.get_window_extent(renderer)
+            return to_axes.transform((bb.x1, 0))[0] - to_axes.transform((bb.x0, 0))[0]
+        val_w, unit_w, space = _width(t_val), _width(t_unit), 0.012
+        x0 = x + w/2 - (val_w + space + unit_w) / 2
+        t_val.set_x(x0)
+        # Unit sits on the value's baseline
+        val_bb = to_axes.transform(t_val.get_window_extent(renderer).get_points())
+        t_unit.set_position((x0 + val_w + space, val_bb[0][1] + 0.022))
+    else:
+        ax.text(x + w/2, vy, value, ha='center', va='center',
+                fontsize=19, fontweight='bold', color=color, transform=ax.transAxes)
     # Optional small unit directly below the value (e.g. "inHg")
     if unit_below:
         ax.text(x + w/2, vy - 0.04, unit_below, ha='center', va='top',
@@ -465,10 +507,10 @@ def stat_card(ax, x, y, w, h, label, value, color,
         sep = '\n' if hl_unit_below else ''
         hl_y, hl_va = (y + h*0.08 + 0.10, 'top') if hl_unit_below else (y + h*0.08 + 0.02, 'bottom')
         hl_y += shift
-        ax.text(x + w*0.28, hl_y, f"High\n{high:0.{hl_decimals}f}{sep}{unit}",
+        ax.text(x + w*hl_x[0], hl_y, f"High\n{high:0.{hl_decimals}f}{sep}{unit}",
                 ha='center', va=hl_va, fontsize=7, color='#555555',
                 transform=ax.transAxes, linespacing=1.4)
-        ax.text(x + w*0.72, hl_y, f"Low\n{low:0.{hl_decimals}f}{sep}{unit}",
+        ax.text(x + w*hl_x[1], hl_y, f"Low\n{low:0.{hl_decimals}f}{sep}{unit}",
                 ha='center', va=hl_va, fontsize=7, color='#555555',
                 transform=ax.transAxes, linespacing=1.4)
 
@@ -480,8 +522,9 @@ stats = [
     dict(label="HUMIDITY",    col='RH_Avg',    color='seagreen',
          value=lambda v: f"{v:0.0f}%",         unit='%', unit_below=None),
     dict(label="PRESSURE",    col='BP_inHg',   color='indigo',
-         value=lambda v: f"{v:0.2f}",          unit='inHg', unit_below='inHg',
-         hl_decimals=2, hl_unit_below=True, value_at_precip=True),
+         value=lambda v: f"{v:0.2f}",          unit=' inHg', unit_beside='inHg',
+         hl_decimals=2, hl_unit_below=False, value_at_precip=True,
+         hl_x=(0.20, 0.80)),   # High/Low spread apart to fit "inHg" beside the numbers
 ]
 
 # Grid geometry for the wide panel: 3 cards on top (Temperature, Dew Point,
@@ -491,14 +534,15 @@ gap_x  = 0.02   # space between columns
 x_left  = 0.03
 x_mid   = x_left + col_w + gap_x
 x_right = x_mid + col_w + gap_x
-x_row2_left  = x_left + (col_w + gap_x) / 2   # row 2 is centered under row 1
-x_row2_right = x_row2_left + col_w + gap_x
+ROW2_SPREAD = 0.05   # extra space pushing Pressure left and Precipitation right
+x_row2_left  = x_left + (col_w + gap_x) / 2 - ROW2_SPREAD   # row 2 is centered under row 1
+x_row2_right = x_row2_left + col_w + gap_x + 2*ROW2_SPREAD
 
 row_h  = 0.40
-y_row1 = 0.47
+y_row1 = 0.43   # was 0.47: top row moved down, closer to the bottom row
 y_row2 = 0.05
 
-ROW1_SHIFT = 0.06        # top-row cards: value and High/Low moved up (closer to the label)
+ROW1_SHIFT = 0.035       # top-row cards: value and High/Low moved up (closer to the label)
 PRECIP_VALUE_FRAC = 0.60 # height of the daily precip value in its card (pressure matches it)
 
 positions_rows12 = [(x_left, y_row1), (x_mid, y_row1), (x_right, y_row1),
@@ -510,7 +554,9 @@ for (x, y), s in zip(positions_rows12, stats):
     lo = wx_5min.loc[today_mask, s['col']].min()
     stat_card(ax_panel, x, y, col_w, row_h,
               s['label'], s['value'](now_val), s['color'],
-              high=hi, low=lo, unit=s['unit'], unit_below=s['unit_below'],
+              high=hi, low=lo, unit=s['unit'], unit_below=s.get('unit_below'),
+              unit_beside=s.get('unit_beside'),
+              hl_x=s.get('hl_x', (0.28, 0.72)),
               hl_decimals=s.get('hl_decimals', 1),
               hl_unit_below=s.get('hl_unit_below', False),
               value_y=(y + row_h*PRECIP_VALUE_FRAC) if s.get('value_at_precip') else None,
@@ -573,7 +619,7 @@ ax_windpanel.add_patch(FancyBboxPatch(
     transform=ax_windpanel.transAxes, zorder=0
 ))
 
-ax_windpanel.text(0.5, 0.90, "CURRENT WIND", ha='center', va='center',
+ax_windpanel.text(0.5, 0.93, "CURRENT WIND", ha='center', va='center',
                    fontsize=11, fontweight='bold', color='#333333',
                    transform=ax_windpanel.transAxes)
 
@@ -674,7 +720,7 @@ ax_rainpanel.add_patch(FancyBboxPatch(
     transform=ax_rainpanel.transAxes, zorder=0
 ))
  
-ax_rainpanel.text(0.5, 0.90, "PRECIPITATION TOTALS", ha='center', va='center',
+ax_rainpanel.text(0.5, 0.93, "PRECIPITATION TOTALS", ha='center', va='center',
                    fontsize=11, fontweight='bold', color='#333333',
                    transform=ax_rainpanel.transAxes)
  
