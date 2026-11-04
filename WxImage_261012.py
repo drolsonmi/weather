@@ -1,3 +1,7 @@
+## Snow College Weather Station Display
+## Created by Dr. Michael E. Olson with the assistance of Claude AI
+## Last update: October 12, 2026
+
 import numpy as np 
 import pandas as pd 
 import matplotlib.pyplot as plt
